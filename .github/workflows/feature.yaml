@@ -7,9 +7,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - service/**
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
   workflow_dispatch:
+
 jobs:
   build-and-push:
       runs-on: ubuntu-latest
@@ -35,8 +38,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./feature
+          context: ./service
           push: ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
           tags: ghcr.io/${{ github.repository_owner }}/feature:latest,ghcr.io/${{ github.repository_owner }}/feature:${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
-  
