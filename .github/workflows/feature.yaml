@@ -36,6 +36,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # We need to pass the tag or the short hash as build argument VERSOION to the Dockerfile
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -43,3 +44,5 @@ jobs:
           push: ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
           tags: ghcr.io/${{ github.repository_owner }}/feature:latest,ghcr.io/${{ github.repository_owner }}/feature:${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
+          build-args: |
+              VERSION=${{ github.ref_name }}
