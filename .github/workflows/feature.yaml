@@ -1,6 +1,7 @@
 # In the directory /feautre, build the Dockerfile using docker-build-push action
 # If it is a tag on  main, the push the image, otherwise just build it without pushing.
 # Build amd64 and arm64 images and push to GitHub Container Registry as a single multiarch image:
+# only get active on the patch /service
 
 name: Build and Push Feature Docker Image
 on:
@@ -8,7 +9,7 @@ on:
     branches:
       - main
     paths:
-      - service/**
+      - 'service/**'
     tags:
       - '*.*.*'
   workflow_dispatch:
