@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  # Dockerfiles in service/ and ui/
+  - package-ecosystem: "docker"
+    directory: "/service"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "docker"
+    directory: "/ui"
+    schedule:
+      interval: "daily"
+  # Go modules in service/ and ui/
+  - package-ecosystem: "gomod"
+    directory: "/service"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "gomod"
+    directory: "/ui"
+    schedule:
+      interval: "daily"

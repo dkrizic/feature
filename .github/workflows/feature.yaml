@@ -1,0 +1,23 @@
+name: Build Feature
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+  paths:
+    - feature/**
+
+jobs:
+
+  # Build by using Dockerfile
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
