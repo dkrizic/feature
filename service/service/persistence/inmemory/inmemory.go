@@ -1,27 +1,49 @@
 package inmemory
 
-import "github.com/dkrizic/feature/service/service/persistence"
+import (
+	"context"
+	"log/slog"
+
+	"github.com/dkrizic/feature/service/service/persistence"
+)
 
 type Persistence struct {
-	data *[]persistence.KeyValue
+	data map[string]string
 }
 
 func NewPersistence() *Persistence {
 	return &Persistence{}
 }
 
-func (p *Persistence) GetAll() ([]persistence.KeyValue, error) {
-	return nil, nil
+func (p *Persistence) GetAll(ctx context.Context) ([]persistence.KeyValue, error) {
+	var result []persistence.KeyValue
+	for k, v := range p.data {
+		result = append(result, persistence.KeyValue{Key: k, Value: v})
+	}
+	return result, nil
 }
 
-func (p *Persistence) PreSet(persistence.KeyValue) error {
+// set the value only if it does not exist
+func (p *Persistence) PreSet(ctx context.Context, kv persistence.KeyValue) error {
+	oldvalue, exist := p.data[kv.Key]
+	if !exist {
+		slog.DebugContext(ctx, "PreSetting", "key", kv.Key, "value", kv.Value)
+		p.data[kv.Key] = kv.Value
+	} else {
+		slog.Info("Key already exists, not presetting", "key", kv.Key, "value", kv.Value, "oldvalue", oldvalue)
+	}
+	return nil
+
+}
+
+func (p *Persistence) Set(ctx context.Context, kv persistence.KeyValue) error {
+	p.data[kv.Key] = kv.Value
+	slog.DebugContext(ctx, "Setting", "key", kv.Key, "value", kv.Value)
 	return nil
 }
 
-func (p *Persistence) Set(persistence.KeyValue) error {
-	return nil
-}
-
-func (p *Persistence) Get(key string) (persistence.KeyValue, error) {
-	return persistence.KeyValue{}, nil
+func (p *Persistence) Get(ctx context.Context, key string) (persistence.KeyValue, error) {
+	result := persistence.KeyValue{Key: key, Value: p.data[key]}
+	slog.DebugContext(ctx, "Getting", "key", key, "value", result.Value)
+	return result, nil
 }
