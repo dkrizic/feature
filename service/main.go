@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/dkrizic/feature/service/meta"
 	"github.com/dkrizic/feature/service/service"
 	"github.com/urfave/cli/v3" // imports as package "cli"
 )
@@ -33,6 +34,14 @@ func main() {
 		},
 		Before: beforeAction,
 		Commands: []*cli.Command{
+			&cli.Command{
+				Name:  "version",
+				Usage: "Print the version number of the feature service",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					slog.Info("Feature Service", "name", meta.Service, "version", meta.Version)
+					return nil
+				},
+			},
 			&cli.Command{
 				Name:   "service",
 				Usage:  "Start the feature service",
