@@ -12,6 +12,8 @@ import (
 	"syscall"
 
 	"github.com/dkrizic/feature/service/constant"
+	"github.com/dkrizic/feature/service/service/feature"
+	"github.com/dkrizic/feature/service/service/feature/featurev1"
 	persitence "github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/service/persistence/configmap"
 	"github.com/dkrizic/feature/service/service/persistence/inmemory"
@@ -101,6 +103,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+
+	// feature
+	featurev1.RegisterFeatureServer(grpcServer, feature.NewFeatureService(persistence))
 
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT

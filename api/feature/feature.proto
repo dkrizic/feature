@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package feature.v1;
+
+option go_package = "github.com/dkrizic/feature/service/service/feature/featurev1;featurev1";
+
+import "google/protobuf/empty.proto";
+
+message Key {
+  string name = 1;
+}
+
+message Value {
+  string name = 1;
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
+
+service Feature {
+  rpc GetAll (google.protobuf.Empty) returns (stream KeyValue);
+  rpc PreSet (KeyValue) returns (google.protobuf.Empty);
+  rpc Set (KeyValue) returns (google.protobuf.Empty);
+  rpc Get(Key) returns (Value);
+}
