@@ -12,7 +12,9 @@ type Persistence struct {
 }
 
 func NewPersistence() *Persistence {
-	return &Persistence{}
+	return &Persistence{
+		data: make(map[string]string),
+	}
 }
 
 func (p *Persistence) GetAll(ctx context.Context) ([]persistence.KeyValue, error) {

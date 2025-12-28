@@ -104,6 +104,11 @@ func main() {
 						Usage:   "Name of the ConfigMap to use for configmap storage",
 						Sources: cli.EnvVars("CONFIGMAP_NAME"),
 					},
+					&cli.StringSliceFlag{
+						Name:    constant.PreSet,
+						Usage:   "Pre-set key-value pairs in the format key=value before starting the service",
+						Sources: cli.EnvVars("PRESET"),
+					},
 				},
 			},
 		},

@@ -16,4 +16,5 @@ const (
 	ConfigMapName        = "configmap-name"
 	StorageTypeInMemory  = "inmemory"
 	StorageTypeConfigMap = "configmap"
+	PreSet               = "preset"
 )

@@ -32,7 +32,7 @@ import (
 func Service(ctx context.Context, cmd *cli.Command) error {
 	// get the port
 	port := cmd.Int("port")
-	slog.Info("Starting the feature service", "port", port)
+	slog.InfoContext(ctx, "Starting the feature service", "port", port)
 
 	// configure persistence based on storage type
 	var persistence persitence.Persistence
@@ -43,11 +43,32 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		persistence = inmemory.NewPersistence()
 	case constant.StorageTypeConfigMap:
 		configMapName := cmd.String(constant.ConfigMapName)
-		slog.Info("Using ConfigMap storage", "configMapName", configMapName)
+		slog.InfoContext(ctx, "Using ConfigMap storage", "configMapName", configMapName)
 		persistence = configmap.NewPersistence(configMapName)
 	default:
-		slog.Error("Invalid storage type", "storageType", storageType)
+		slog.ErrorContext(ctx, "Invalid storage type", "storageType", storageType)
 		return fmt.Errorf("invalid storage type: %s", storageType)
+	}
+
+	// check if there is a preset
+	preset := cmd.StringSlice(constant.PreSet)
+	for _, kv := range preset {
+		parts := strings.SplitN(kv, "=", 2)
+		if len(parts) != 2 {
+			slog.WarnContext(ctx, "Invalid preset format, expected key=value", "preset", kv)
+			continue
+		}
+		key := parts[0]
+		value := parts[1]
+		slog.InfoContext(ctx, "Pre-setting key-value", "key", key, "value", value)
+		err := persistence.PreSet(ctx, persitence.KeyValue{
+			Key:   key,
+			Value: value,
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to pre-set key-value", "key", key, "value", value, "error", err)
+			return fmt.Errorf("failed to pre-set key-value: %w", err)
+		}
 	}
 
 	_ = persistence
