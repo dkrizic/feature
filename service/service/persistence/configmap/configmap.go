@@ -1,5 +1,7 @@
 package configmap
 
+import "github.com/dkrizic/feature/service/service/persistence"
+
 type Persistence struct {
 	configMapName string
 }
@@ -10,12 +12,18 @@ func NewPersistence(configMapName string) *Persistence {
 	}
 }
 
-func (c *Persistence) Load() (string, error) {
-	// Placeholder implementation
-	return "config data for " + c.configMapName, nil
+func (p *Persistence) GetAll() ([]persistence.KeyValue, error) {
+	return nil, nil
 }
 
-func (c *Persistence) Save(data string) error {
-	// Placeholder implementation
+func (p *Persistence) PreSet(persistence.KeyValue) error {
 	return nil
+}
+
+func (p *Persistence) Set(persistence.KeyValue) error {
+	return nil
+}
+
+func (p *Persistence) Get(key string) (persistence.KeyValue, error) {
+	return persistence.KeyValue{}, nil
 }
