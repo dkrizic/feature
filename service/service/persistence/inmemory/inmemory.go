@@ -49,3 +49,9 @@ func (p *Persistence) Get(ctx context.Context, key string) (persistence.KeyValue
 	slog.DebugContext(ctx, "Getting", "key", key, "value", result.Value)
 	return result, nil
 }
+
+func (p *Persistence) Delete(ctx context.Context, key string) error {
+	delete(p.data, key)
+	slog.DebugContext(ctx, "Deleting", "key", key)
+	return nil
+}

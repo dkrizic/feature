@@ -24,4 +24,5 @@ service Feature {
   rpc PreSet (KeyValue) returns (google.protobuf.Empty);
   rpc Set (KeyValue) returns (google.protobuf.Empty);
   rpc Get(Key) returns (Value);
+  rpc Delete(Key) returns (google.protobuf.Empty);
 }

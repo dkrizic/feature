@@ -174,12 +174,13 @@ const file_feature_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"2\n" +
 	"\bKeyValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value2\xdb\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value2\x8e\x02\n" +
 	"\aFeature\x128\n" +
 	"\x06GetAll\x12\x16.google.protobuf.Empty\x1a\x14.feature.v1.KeyValue0\x01\x126\n" +
 	"\x06PreSet\x12\x14.feature.v1.KeyValue\x1a\x16.google.protobuf.Empty\x123\n" +
 	"\x03Set\x12\x14.feature.v1.KeyValue\x1a\x16.google.protobuf.Empty\x12)\n" +
-	"\x03Get\x12\x0f.feature.v1.Key\x1a\x11.feature.v1.ValueBHZFgithub.com/dkrizic/feature/service/service/feature/featurev1;featurev1b\x06proto3"
+	"\x03Get\x12\x0f.feature.v1.Key\x1a\x11.feature.v1.Value\x121\n" +
+	"\x06Delete\x12\x0f.feature.v1.Key\x1a\x16.google.protobuf.EmptyBHZFgithub.com/dkrizic/feature/service/service/feature/featurev1;featurev1b\x06proto3"
 
 var (
 	file_feature_proto_rawDescOnce sync.Once
@@ -205,12 +206,14 @@ var file_feature_proto_depIdxs = []int32{
 	2, // 1: feature.v1.Feature.PreSet:input_type -> feature.v1.KeyValue
 	2, // 2: feature.v1.Feature.Set:input_type -> feature.v1.KeyValue
 	0, // 3: feature.v1.Feature.Get:input_type -> feature.v1.Key
-	2, // 4: feature.v1.Feature.GetAll:output_type -> feature.v1.KeyValue
-	3, // 5: feature.v1.Feature.PreSet:output_type -> google.protobuf.Empty
-	3, // 6: feature.v1.Feature.Set:output_type -> google.protobuf.Empty
-	1, // 7: feature.v1.Feature.Get:output_type -> feature.v1.Value
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	0, // 4: feature.v1.Feature.Delete:input_type -> feature.v1.Key
+	2, // 5: feature.v1.Feature.GetAll:output_type -> feature.v1.KeyValue
+	3, // 6: feature.v1.Feature.PreSet:output_type -> google.protobuf.Empty
+	3, // 7: feature.v1.Feature.Set:output_type -> google.protobuf.Empty
+	1, // 8: feature.v1.Feature.Get:output_type -> feature.v1.Value
+	3, // 9: feature.v1.Feature.Delete:output_type -> google.protobuf.Empty
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

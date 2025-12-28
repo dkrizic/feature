@@ -24,6 +24,7 @@ const (
 	Feature_PreSet_FullMethodName = "/feature.v1.Feature/PreSet"
 	Feature_Set_FullMethodName    = "/feature.v1.Feature/Set"
 	Feature_Get_FullMethodName    = "/feature.v1.Feature/Get"
+	Feature_Delete_FullMethodName = "/feature.v1.Feature/Delete"
 )
 
 // FeatureClient is the client API for Feature service.
@@ -34,6 +35,7 @@ type FeatureClient interface {
 	PreSet(ctx context.Context, in *KeyValue, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Set(ctx context.Context, in *KeyValue, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Get(ctx context.Context, in *Key, opts ...grpc.CallOption) (*Value, error)
+	Delete(ctx context.Context, in *Key, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type featureClient struct {
@@ -93,6 +95,16 @@ func (c *featureClient) Get(ctx context.Context, in *Key, opts ...grpc.CallOptio
 	return out, nil
 }
 
+func (c *featureClient) Delete(ctx context.Context, in *Key, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, Feature_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FeatureServer is the server API for Feature service.
 // All implementations must embed UnimplementedFeatureServer
 // for forward compatibility.
@@ -101,6 +113,7 @@ type FeatureServer interface {
 	PreSet(context.Context, *KeyValue) (*emptypb.Empty, error)
 	Set(context.Context, *KeyValue) (*emptypb.Empty, error)
 	Get(context.Context, *Key) (*Value, error)
+	Delete(context.Context, *Key) (*emptypb.Empty, error)
 	mustEmbedUnimplementedFeatureServer()
 }
 
@@ -122,6 +135,9 @@ func (UnimplementedFeatureServer) Set(context.Context, *KeyValue) (*emptypb.Empt
 }
 func (UnimplementedFeatureServer) Get(context.Context, *Key) (*Value, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedFeatureServer) Delete(context.Context, *Key) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedFeatureServer) mustEmbedUnimplementedFeatureServer() {}
 func (UnimplementedFeatureServer) testEmbeddedByValue()                 {}
@@ -209,6 +225,24 @@ func _Feature_Get_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Feature_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Key)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeatureServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Feature_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeatureServer).Delete(ctx, req.(*Key))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Feature_ServiceDesc is the grpc.ServiceDesc for Feature service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -227,6 +261,10 @@ var Feature_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _Feature_Get_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Feature_Delete_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

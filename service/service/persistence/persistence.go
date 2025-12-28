@@ -12,4 +12,5 @@ type Persistence interface {
 	PreSet(context.Context, KeyValue) error
 	Set(context.Context, KeyValue) error
 	Get(context.Context, string) (KeyValue, error)
+	Delete(context.Context, string) error
 }

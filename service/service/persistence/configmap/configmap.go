@@ -31,3 +31,7 @@ func (p *Persistence) Set(ctx context.Context, kv persistence.KeyValue) error {
 func (p *Persistence) Get(ctx context.Context, key string) (persistence.KeyValue, error) {
 	return persistence.KeyValue{}, nil
 }
+
+func (p *Persistence) Delete(ctx context.Context, key string) error {
+	return nil
+}
