@@ -1,19 +1,21 @@
 package configmap
 
-type Config struct {
-	name string
+type Persistence struct {
+	configMapName string
 }
 
-func NewConfig(name string) *Config {
-	return &Config{name: name}
+func NewPersistence(configMapName string) *Persistence {
+	return &Persistence{
+		configMapName: configMapName,
+	}
 }
 
-func (c *Config) Load() (string, error) {
+func (c *Persistence) Load() (string, error) {
 	// Placeholder implementation
-	return "config data for " + c.name, nil
+	return "config data for " + c.configMapName, nil
 }
 
-func (c *Config) Save(data string) error {
+func (c *Persistence) Save(data string) error {
 	// Placeholder implementation
 	return nil
 }
