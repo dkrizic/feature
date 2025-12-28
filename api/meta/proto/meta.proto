@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package meta.v1;
+
+option go_package = "feature/api/meta/gen/meta/v1;metav1";
+
+message MetaRequest {
+}
+
+message MetaResponse {
+  string serviceName = 1;
+  string version = 2;
+}
+
+service Meta {
+  rpc Meta (MetaRequest) returns (MetaResponse);
+}

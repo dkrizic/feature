@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package feature.v1;
+
+option go_package = "github.com/dkrizic/feature/api/feature/gen/feature/v1;featurev1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message Feature {
+  string name = 2;
+}
+
+message FeatureName {
+  string name = 1;
+}
+
+message FeatureValue {
+  string value = 1;
+}
+
+message SetValueRequest {
+  string name = 1;
+  string value = 2;
+}
+
+service Feature {
+  rpc GetAllFeatures (google.protobuf.Empty) returns (stream Feature);
+  rpc GetValue (FeatureName) returns (FeatureValue);
+  rpc SetValue (FeatureName)
+}
