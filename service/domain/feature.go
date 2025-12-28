@@ -1,5 +1,10 @@
 package domain
 
+type Features struct {
+	Items []Feature
+}
+
 type Feature struct {
-	Name string
+	Name  string
+	Value string
 }
