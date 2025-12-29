@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/dkrizic/feature/service/service/feature/featurev1"
+	"github.com/dkrizic/feature/service/service/feature/v1"
 	"github.com/dkrizic/feature/service/service/persistence"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"

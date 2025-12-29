@@ -5,7 +5,7 @@ package meta
 import (
 	"context"
 	"github.com/dkrizic/feature/service/meta"
-	metav1 "github.com/dkrizic/feature/service/service/meta/metav1"
+	metav1 "github.com/dkrizic/feature/service/service/meta/v1"
 )
 
 type MetaService struct {

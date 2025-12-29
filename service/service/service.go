@@ -13,8 +13,10 @@ import (
 
 	"github.com/dkrizic/feature/service/constant"
 	"github.com/dkrizic/feature/service/service/feature"
-	"github.com/dkrizic/feature/service/service/feature/featurev1"
-	persitence "github.com/dkrizic/feature/service/service/persistence"
+	"github.com/dkrizic/feature/service/service/feature/v1"
+	"github.com/dkrizic/feature/service/service/meta"
+	"github.com/dkrizic/feature/service/service/meta/v1"
+	"github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/service/persistence/configmap"
 	"github.com/dkrizic/feature/service/service/persistence/inmemory"
 	"github.com/urfave/cli/v3"
@@ -26,9 +28,6 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/stats"
-
-	"github.com/dkrizic/feature/service/service/meta"
-	"github.com/dkrizic/feature/service/service/meta/metav1"
 )
 
 func Service(ctx context.Context, cmd *cli.Command) error {
@@ -37,16 +36,16 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	slog.InfoContext(ctx, "Starting the feature service", "port", port)
 
 	// configure persistence based on storage type
-	var persistence persitence.Persistence
+	var pers persistence.Persistence
 	storageType := cmd.String(constant.StorageType)
 	switch storageType {
 	case constant.StorageTypeInMemory:
 		slog.Info("Using in-memory storage")
-		persistence = inmemory.NewPersistence()
+		pers = inmemory.NewPersistence()
 	case constant.StorageTypeConfigMap:
 		configMapName := cmd.String(constant.ConfigMapName)
 		slog.InfoContext(ctx, "Using ConfigMap storage", "configMapName", configMapName)
-		persistence = configmap.NewPersistence(configMapName)
+		pers = configmap.NewPersistence(configMapName)
 	default:
 		slog.ErrorContext(ctx, "Invalid storage type", "storageType", storageType)
 		return fmt.Errorf("invalid storage type: %s", storageType)
@@ -63,7 +62,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		key := parts[0]
 		value := parts[1]
 		slog.InfoContext(ctx, "Pre-setting key-value", "key", key, "value", value)
-		err := persistence.PreSet(ctx, persitence.KeyValue{
+		err := pers.PreSet(ctx, persistence.KeyValue{
 			Key:   key,
 			Value: value,
 		})
@@ -72,8 +71,6 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to pre-set key-value: %w", err)
 		}
 	}
-
-	_ = persistence
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
@@ -105,7 +102,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
 	// feature
-	featurev1.RegisterFeatureServer(grpcServer, feature.NewFeatureService(persistence))
+	featurev1.RegisterFeatureServer(grpcServer, feature.NewFeatureService(pers))
 
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT
