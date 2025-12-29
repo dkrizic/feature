@@ -1,6 +1,7 @@
 package service
 
 import (
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -55,7 +56,7 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		kv, err := stream.Recv()
 		if err != nil {
 			// Check if we've reached the end of the stream
-			if err.Error() == "EOF" {
+			if err == io.EOF {
 				break
 			}
 			slog.Error("Failed to receive feature", "error", err)
