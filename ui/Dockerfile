@@ -15,4 +15,4 @@ FROM scratch
 COPY --from=builder /app/feature-ui /app/feature-ui
 EXPOSE 8000
 ENTRYPOINT ["/app/feature-ui"]
-CMD["service"]
+CMD ["service"]

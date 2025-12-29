@@ -20,4 +20,4 @@ ENV PORT=8000
 
 EXPOSE 8000
 ENTRYPOINT ["/app/feature"]
-CMD["service"]
+CMD ["service"]
