@@ -250,7 +250,7 @@
             setTimeout(function() {
                 toast.classList.add('hide');
                 setTimeout(function() {
-                    document.body.removeChild(toast);
+                    toast.remove();
                 }, 300);
             }, 4000);
         });

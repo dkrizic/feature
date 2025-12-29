@@ -65,15 +65,33 @@ function validateUpdateFeature(form) {
     const value = valueInput.value.trim();
     
     if (value.length > 1024) {
-        alert('Value must not exceed 1024 characters');
+        // Create inline error message if it doesn't exist
+        let errorMsg = form.querySelector('.update-error');
+        if (!errorMsg) {
+            errorMsg = document.createElement('span');
+            errorMsg.className = 'error-text update-error';
+            valueInput.parentNode.appendChild(errorMsg);
+        }
+        errorMsg.textContent = 'Value must not exceed 1024 characters';
+        errorMsg.classList.add('show');
         return false;
+    } else {
+        // Clear any existing error
+        const errorMsg = form.querySelector('.update-error');
+        if (errorMsg) {
+            errorMsg.classList.remove('show');
+        }
     }
     
     return true;
 }
 
 function confirmDeleteFeature(key) {
-    return confirm('Are you sure you want to delete the feature "' + key + '"?');
+    // Create a text node to safely escape the key value
+    const tempDiv = document.createElement('div');
+    tempDiv.textContent = key;
+    const escapedKey = tempDiv.innerHTML;
+    return confirm('Are you sure you want to delete the feature "' + escapedKey + '"?');
 }
 </script>
 
