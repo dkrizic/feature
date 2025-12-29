@@ -15,6 +15,9 @@ func GetAll(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	all, err := fc.GetAll(ctx, &emptypb.Empty{})
+	if err != nil {
+		return err
+	}
 	for {
 		kv, err := all.Recv()
 		if err != nil {
