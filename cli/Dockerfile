@@ -11,7 +11,7 @@ RUN go build -ldflags "-s -w -X 'meta.Version=${VERSION}'" -o feature-cli main.g
 # Run all tests
 RUN go test ./...
 
-FROM scratch
+FROM alpine:2.11.7
 COPY --from=builder /app/feature-cli /app/feature-cli
 EXPOSE 8000
-ENTRYPOINT ["/app/feature-cli"]
+ENTRYPOINT ["/bin/pause"]

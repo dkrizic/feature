@@ -7,7 +7,7 @@ service:
   # Number of replicas. Must be 1 when using InMemory storage type
   replicaCount: 1
   image:
-    repository: ghcr.io/dkrizic/feature/feature
+    repository: ghcr.io/dkrizic/feature
     tag: ""
   port: 8000
   # The storage type, either "inmemory" or "configmap"
@@ -23,17 +23,17 @@ service:
   resources: {}
   livenessProbe:
     grpc:
-      port: http
+      port: 8000
   readinessProbe:
     grpc:
-      port: http
+      port: 8000
 
 cli:
   # Deploy the feature CLI
   enabled: true
   replicaCount: 1
   image:
-    repository: ghcr.io/dkrizic/feature/feature-cli
+    repository: ghcr.io/dkrizic/feature-cli
     tag: ""
   resources: {}
 
@@ -42,7 +42,7 @@ ui:
   enabled: true
   replicaCount: 1
   image:
-    repository: ghcr.io/dkrizic/feature/feature-ui
+    repository: ghcr.io/dkrizic/feature-ui
     tag: ""
   livenessProbe:
     httpGet:
