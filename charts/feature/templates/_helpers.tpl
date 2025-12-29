@@ -60,3 +60,41 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create a fully qualified UI name.
+*/}}
+{{- define "feature.ui.fullname" -}}
+{{- printf "%s-ui" (include "feature.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a fully qualified CLI name.
+*/}}
+{{- define "feature.cli.fullname" -}}
+{{- printf "%s-cli" (include "feature.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+UI selector labels
+*/}}
+{{- define "feature.ui.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "feature.name" . }}-ui
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+CLI selector labels
+*/}}
+{{- define "feature.cli.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "feature.name" . }}-cli
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Service selector labels (main service component)
+*/}}
+{{- define "feature.service.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "feature.name" . }}-service
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

@@ -1,15 +1,18 @@
+{{- if .Values.service.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "feature.fullname" . }}
   labels:
     {{- include "feature.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service
 spec:
-  type: {{ .Values.service.type }}
+  type: ClusterIP
   ports:
     - port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
-    {{- include "feature.selectorLabels" . | nindent 4 }}
+    {{- include "feature.service.selectorLabels" . | nindent 4 }}
+{{- end }}
