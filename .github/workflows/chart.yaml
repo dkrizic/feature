@@ -1,0 +1,75 @@
+name: Helm Chart Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/feature/**'
+      - '.github/workflows/chart.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.19.4'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare gh-pages branch
+        run: |
+          # Fetch gh-pages branch if it exists
+          git fetch origin gh-pages:gh-pages || echo "gh-pages branch does not exist yet"
+          
+          # Create worktree for gh-pages
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git worktree add gh-pages-worktree gh-pages
+          else
+            mkdir -p gh-pages-worktree
+            git worktree add --detach gh-pages-worktree
+            cd gh-pages-worktree
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+            cd ..
+          fi
+
+      - name: Package Helm chart
+        run: |
+          helm package charts/feature -d gh-pages-worktree
+
+      - name: Update Helm repository index
+        run: |
+          cd gh-pages-worktree
+          helm repo index . --url https://dkrizic.github.io/feature
+          cd ..
+
+      - name: Commit and push to gh-pages
+        run: |
+          cd gh-pages-worktree
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Release Helm chart $(helm show chart ../charts/feature | grep '^version:' | awk '{print $2}')"
+            git push origin HEAD:gh-pages
+          fi
+          
+          cd ..
+          git worktree remove gh-pages-worktree

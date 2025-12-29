@@ -7,6 +7,7 @@ Related components:
 - [UI README](./ui/README.md)
 - [CLI README](./cli/README.md)
 - [Service README](./service/README.md)
+- [Helm Chart README](./charts/feature/README.md)
 
 ```mermaid
 graph TD
