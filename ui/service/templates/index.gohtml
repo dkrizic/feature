@@ -1,33 +1,259 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="system">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feature Flags - UI</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <style>
+        /* Theme variables */
+        :root[data-theme="light"] {
+            --bg-color: #ffffff;
+            --fg-color: #1a1a1a;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --accent-color: #0d6efd;
+            --danger-color: #dc3545;
+            --muted-color: #6c757d;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --fg-color: #f8f9fa;
+            --card-bg: #2d2d2d;
+            --border-color: #495057;
+            --accent-color: #4dabf7;
+            --danger-color: #f07178;
+            --muted-color: #adb5bd;
+        }
+
+        /* Compact layout */
+        body {
+            font-size: 0.875rem;
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+        }
+
+        main.container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Header layout */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        header > div:first-child {
+            flex: 1;
+        }
+
+        /* Card styling */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            min-width: 120px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        /* Button icon style */
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        /* Error text */
+        .error-text {
+            color: var(--danger-color);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .error-text.show {
+            display: block;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background-color: var(--danger-color);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.hide {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Compact forms and tables */
+        input, select, button {
+            font-size: 0.875rem;
+        }
+
+        table {
+            font-size: 0.875rem;
+        }
+
+        /* Small text adjustments */
+        small {
+            font-size: 0.75rem;
+            color: var(--muted-color);
+        }
+    </style>
 </head>
 <body>
     <main class="container">
         <header>
-            <h1>Feature Flags</h1>
-            <p>
-                <small>
-                    UI v{{.UIVersion}}
-                    {{if .BackendVersion}} · Backend v{{.BackendVersion}}{{end}}
-                </small>
-            </p>
+            <div>
+                <h1>Feature Flags</h1>
+                <p>
+                    <small>
+                        UI v{{.UIVersion}}
+                        {{if .BackendVersion}} · Backend v{{.BackendVersion}}{{end}}
+                    </small>
+                </p>
+            </div>
+            <div>
+                <select class="theme-toggle" id="theme-toggle" aria-label="Theme selector">
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
         </header>
 
         <section>
             <h2>Features</h2>
-            <div id="feature-list" 
-                 hx-get="/features/list" 
-                 hx-trigger="load" 
-                 hx-swap="innerHTML">
-                <p aria-busy="true">Loading features...</p>
+            <div class="card">
+                <div id="feature-list" 
+                     hx-get="/features/list" 
+                     hx-trigger="load" 
+                     hx-swap="innerHTML">
+                    <p aria-busy="true">Loading features...</p>
+                </div>
             </div>
         </section>
     </main>
+
+    <script>
+        // Theme management
+        (function() {
+            const THEME_KEY = 'feature-ui-theme';
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('theme-toggle');
+
+            // Get system theme preference
+            function getSystemTheme() {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            // Apply theme to HTML element
+            function applyTheme(theme) {
+                if (theme === 'system') {
+                    html.setAttribute('data-theme', getSystemTheme());
+                } else {
+                    html.setAttribute('data-theme', theme);
+                }
+            }
+
+            // Load saved theme preference
+            const savedTheme = localStorage.getItem(THEME_KEY) || 'system';
+            themeToggle.value = savedTheme;
+            applyTheme(savedTheme);
+
+            // Handle theme change
+            themeToggle.addEventListener('change', function() {
+                const newTheme = this.value;
+                localStorage.setItem(THEME_KEY, newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Watch for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+                if (themeToggle.value === 'system') {
+                    applyTheme('system');
+                }
+            });
+        })();
+
+        // HTMX error handler with toast
+        document.body.addEventListener('htmx:responseError', function(evt) {
+            const errorMsg = evt.detail.xhr.responseText || 'An error occurred';
+            
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = errorMsg;
+            document.body.appendChild(toast);
+
+            // Auto-dismiss after 4 seconds
+            setTimeout(function() {
+                toast.classList.add('hide');
+                setTimeout(function() {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 4000);
+        });
+    </script>
 </body>
 </html>

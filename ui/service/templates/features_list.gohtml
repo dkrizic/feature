@@ -4,28 +4,86 @@
     </header>
     <form hx-post="/features/create" 
           hx-target="#feature-list" 
-          hx-swap="innerHTML">
-        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; align-items: end;">
+          hx-swap="innerHTML"
+          onsubmit="return validateCreateFeature(this)">
+        <div style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.5rem; align-items: end;">
             <div>
                 <label for="create-key">Key</label>
-                <input type="text" id="create-key" name="key" placeholder="feature-name" required>
+                <input type="text" id="create-key" name="key" placeholder="feature-name">
+                <span class="error-text" id="create-key-error"></span>
             </div>
             <div>
                 <label for="create-value">Value</label>
                 <input type="text" id="create-value" name="value" placeholder="value">
+                <span class="error-text" id="create-value-error"></span>
             </div>
-            <button type="submit">Create</button>
+            <button type="submit" class="btn-icon">＋ Create</button>
         </div>
     </form>
 </article>
+
+<script>
+function validateCreateFeature(form) {
+    const keyInput = form.querySelector('#create-key');
+    const valueInput = form.querySelector('#create-value');
+    const keyError = form.querySelector('#create-key-error');
+    const valueError = form.querySelector('#create-value-error');
+    
+    let isValid = true;
+    
+    // Reset errors
+    keyError.textContent = '';
+    keyError.classList.remove('show');
+    valueError.textContent = '';
+    valueError.classList.remove('show');
+    
+    // Validate key (required, max 128 chars)
+    const key = keyInput.value.trim();
+    if (!key) {
+        keyError.textContent = 'Key is required';
+        keyError.classList.add('show');
+        isValid = false;
+    } else if (key.length > 128) {
+        keyError.textContent = 'Key must not exceed 128 characters';
+        keyError.classList.add('show');
+        isValid = false;
+    }
+    
+    // Validate value (optional, max 1024 chars)
+    const value = valueInput.value.trim();
+    if (value.length > 1024) {
+        valueError.textContent = 'Value must not exceed 1024 characters';
+        valueError.classList.add('show');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+function validateUpdateFeature(form) {
+    const valueInput = form.querySelector('input[name="value"]');
+    const value = valueInput.value.trim();
+    
+    if (value.length > 1024) {
+        alert('Value must not exceed 1024 characters');
+        return false;
+    }
+    
+    return true;
+}
+
+function confirmDeleteFeature(key) {
+    return confirm('Are you sure you want to delete the feature "' + key + '"?');
+}
+</script>
 
 {{if .Features}}
 <table role="grid">
     <thead>
         <tr>
-            <th>Key</th>
-            <th>Value</th>
-            <th>Actions</th>
+            <th style="width: 25%;">Key</th>
+            <th style="width: 50%;">Value</th>
+            <th style="width: 25%;">Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -37,19 +95,21 @@
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
                       id="form-{{.Key}}"
-                      style="margin: 0; display: flex; gap: 0.5rem;">
+                      onsubmit="return validateUpdateFeature(this)"
+                      style="margin: 0; display: flex; gap: 0.5rem; align-items: center;">
                     <input type="hidden" name="key" value="{{.Key}}">
-                    <input type="text" name="value" value="{{.Value}}" style="margin: 0; flex: 1;">
-                    <button type="submit" class="secondary" style="margin: 0;">Update</button>
+                    <input type="text" name="value" value="{{.Value}}" style="margin: 0; flex: 1 1 auto; min-width: 220px;">
+                    <button type="submit" class="secondary btn-icon" style="margin: 0; white-space: nowrap;">⟳ Update</button>
                 </form>
             </td>
             <td>
                 <form hx-post="/features/delete" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
+                      onsubmit="return confirmDeleteFeature('{{.Key}}')"
                       style="margin: 0;">
                     <input type="hidden" name="key" value="{{.Key}}">
-                    <button type="submit" class="secondary" style="margin: 0;">Delete</button>
+                    <button type="submit" class="secondary btn-icon" style="margin: 0;">🗑 Delete</button>
                 </form>
             </td>
         </tr>
