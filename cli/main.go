@@ -48,6 +48,14 @@ func main() {
 					return nil
 				},
 			},
+			&cli.StringFlag{
+				Name:     constant.Endpoint,
+				Value:    "localhost:8000",
+				Category: "connection",
+				Usage:    "Feature service endpoint",
+				Required: true,
+				Sources:  cli.EnvVars("ENDPOINT"),
+			},
 		},
 		Before: beforeAction,
 		Commands: []*cli.Command{
@@ -68,16 +76,34 @@ func main() {
 				Name:   "get",
 				Usage:  "Get a feature by key",
 				Action: get.Get,
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "key",
+					},
+				},
 			},
 			&cli.Command{
 				Name:   "set",
 				Usage:  "Set a feature key-value",
 				Action: set.Set,
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "key",
+					},
+					&cli.StringArg{
+						Name: "value",
+					},
+				},
 			},
 			&cli.Command{
 				Name:   "delete",
 				Usage:  "Delete a feature by key",
 				Action: delete.Delete,
+				Arguments: []cli.Argument{
+					&cli.StringArg{
+						Name: "key",
+					},
+				},
 			},
 			&cli.Command{
 				Name:   "preset",
