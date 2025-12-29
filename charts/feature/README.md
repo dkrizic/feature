@@ -41,7 +41,7 @@ The following table lists the main configurable parameters of the Feature chart 
 |-----------|-------------|---------|
 | `service.enabled` | Enable the feature service deployment | `true` |
 | `service.replicaCount` | Number of service replicas (must be 1 for inmemory storage) | `1` |
-| `service.image.repository` | Service image repository | `ghrc.io/dkrizic/feature/feature` |
+| `service.image.repository` | Service image repository | `ghcr.io/dkrizic/feature/feature` |
 | `service.port` | Service gRPC port | `8000` |
 | `service.storageType` | Storage backend type (`inmemory` or `configmap`) | `inmemory` |
 | `service.configMap.name` | ConfigMap name (only for configmap storage) | `""` |
@@ -56,7 +56,7 @@ The following table lists the main configurable parameters of the Feature chart 
 |-----------|-------------|---------|
 | `ui.enabled` | Enable the UI deployment | `true` |
 | `ui.replicaCount` | Number of UI replicas | `1` |
-| `ui.image.repository` | UI image repository | `ghrc.io/dkrizic/feature/feature-ui` |
+| `ui.image.repository` | UI image repository | `ghcr.io/dkrizic/feature/feature-ui` |
 | `ui.ingress.enabled` | Enable Ingress for UI | `false` |
 | `ui.ingress.className` | Ingress class name | `""` |
 | `ui.ingress.annotations` | Ingress annotations | `{}` |
@@ -72,7 +72,7 @@ The following table lists the main configurable parameters of the Feature chart 
 |-----------|-------------|---------|
 | `cli.enabled` | Enable the CLI deployment | `true` |
 | `cli.replicaCount` | Number of CLI replicas | `1` |
-| `cli.image.repository` | CLI image repository | `ghrc.io/dkrizic/feature/feature-cli` |
+| `cli.image.repository` | CLI image repository | `ghcr.io/dkrizic/feature/feature-cli` |
 | `cli.resources` | CPU/Memory resource requests/limits | `{}` |
 
 ### Common Configuration
