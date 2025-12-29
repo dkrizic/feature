@@ -9,8 +9,8 @@ on:
     branches:
       - main
     paths:
-      - 'cli/**'
-      - '.github/workflows/cli.yaml'
+      - 'ui/**'
+      - '.github/workflows/ui.yaml'
     tags:
       - '*.*.*'
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./cli
+          context: ./ui
           push: ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
           tags: ghcr.io/${{ github.repository_owner }}/feature-cli:latest,ghcr.io/${{ github.repository_owner }}/feature-cli:${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
