@@ -256,6 +256,49 @@ func TestHandleFeaturesList(t *testing.T) {
 	}
 }
 
+func TestHandleFeaturesList_AlphabeticalSorting(t *testing.T) {
+	// Test that features are sorted alphabetically regardless of backend order
+	mockFeatureClient := new(MockFeatureClient)
+	
+	// Provide features in non-alphabetical order
+	mockStream := &MockStreamClient{
+		items: []*featurev1.KeyValue{
+			{Key: "zebra", Value: "value1"},
+			{Key: "apple", Value: "value2"},
+			{Key: "mango", Value: "value3"},
+			{Key: "banana", Value: "value4"},
+		},
+		index: 0,
+	}
+	mockFeatureClient.On("GetAll", mock.Anything, mock.Anything).Return(mockStream, nil)
+
+	// Create a template that outputs the keys in order
+	tmpl := template.Must(template.New("features_list.gohtml").Parse(`{{range .Features}}{{.Key}},{{end}}`))
+
+	server := &Server{
+		templates:     tmpl,
+		featureClient: mockFeatureClient,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/features/list", nil)
+	w := httptest.NewRecorder()
+
+	server.handleFeaturesList(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	
+	// Verify features are returned in alphabetical order
+	assert.Equal(t, "apple,banana,mango,zebra,", string(body))
+
+	mockFeatureClient.AssertExpectations(t)
+}
+
 func TestHandleFeatureDelete(t *testing.T) {
 	tests := []struct {
 		name           string
