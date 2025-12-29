@@ -59,7 +59,7 @@ feature getall
 
 ### get
 
-Fetches a single feature by its key. When successful, prints the feature value.
+Fetches a single feature by its key. When successful, prints the feature value. Returns an error if the feature key is not found.
 
 ```bash
 feature get <key>
@@ -93,7 +93,7 @@ feature delete <key>
 
 ### preset
 
-Pre-sets or initializes a feature with the specified key and value. This is used for initial feature flag setup.
+Pre-sets or initializes a feature with the specified key and value. Unlike `set`, `preset` will only create the feature if the key does not already exist. If the key already exists, the existing value is preserved and not overwritten. This is useful for setting default values during initialization.
 
 ```bash
 feature preset <key> <value>
