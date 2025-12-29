@@ -47,7 +47,7 @@ jobs:
         with:
           context: ./ui
           push: ${{ github.ref_type == 'tag' || github.ref == 'refs/heads/main' }}
-          tags: ghcr.io/${{ github.repository_owner }}/feature-cli:latest,ghcr.io/${{ github.repository_owner }}/feature-cli:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository_owner }}/feature-ui:latest,ghcr.io/${{ github.repository_owner }}/feature-ui:${{ github.ref_name }}
           platforms: linux/amd64,linux/arm64
           build-args: |
               VERSION=${{ github.ref_name }}
