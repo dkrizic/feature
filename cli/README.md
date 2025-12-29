@@ -59,7 +59,7 @@ feature getall
 
 ### get
 
-Fetches a single feature by its key. When successful, prints the feature key.
+Fetches a single feature by its key. When successful, prints the feature value.
 
 ```bash
 feature get <key>
