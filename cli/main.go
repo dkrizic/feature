@@ -19,7 +19,7 @@ import (
 
 func main() {
 	cmd := &cli.Command{
-		Name:  "feature",
+		Name:  "feature-cli",
 		Usage: "Feature CLI",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
