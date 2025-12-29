@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -74,6 +75,11 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 			Value: kv.Value,
 		})
 	}
+
+	// Sort features alphabetically by key
+	sort.Slice(features, func(i, j int) bool {
+		return features[i].Key < features[j].Key
+	})
 
 	data := struct {
 		Features []Feature
