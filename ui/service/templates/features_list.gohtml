@@ -1,3 +1,24 @@
+<article>
+    <header>
+        <h3>Create New Feature Flag</h3>
+    </header>
+    <form hx-post="/features/create" 
+          hx-target="#feature-list" 
+          hx-swap="innerHTML">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; align-items: end;">
+            <div>
+                <label for="create-key">Key</label>
+                <input type="text" id="create-key" name="key" placeholder="feature-name" required>
+            </div>
+            <div>
+                <label for="create-value">Value</label>
+                <input type="text" id="create-value" name="value" placeholder="value">
+            </div>
+            <button type="submit">Create</button>
+        </div>
+    </form>
+</article>
+
 {{if .Features}}
 <table role="grid">
     <thead>
@@ -11,15 +32,31 @@
         {{range .Features}}
         <tr>
             <td>{{.Key}}</td>
-            <td>{{.Value}}</td>
             <td>
-                <form hx-post="/features/delete" 
+                <form hx-post="/features/update" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
                       style="margin: 0;">
                     <input type="hidden" name="key" value="{{.Key}}">
-                    <button type="submit" class="secondary" style="margin: 0;">Delete</button>
+                    <input type="text" name="value" value="{{.Value}}" style="margin: 0;">
                 </form>
+            </td>
+            <td>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" 
+                            class="secondary" 
+                            style="margin: 0;"
+                            onclick="this.closest('tr').querySelector('form').requestSubmit()">
+                        Update
+                    </button>
+                    <form hx-post="/features/delete" 
+                          hx-target="#feature-list" 
+                          hx-swap="innerHTML"
+                          style="margin: 0;">
+                        <input type="hidden" name="key" value="{{.Key}}">
+                        <button type="submit" class="secondary" style="margin: 0;">Delete</button>
+                    </form>
+                </div>
             </td>
         </tr>
         {{end}}
