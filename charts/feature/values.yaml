@@ -35,6 +35,8 @@ cli:
   image:
     repository: ghcr.io/dkrizic/feature-cli
     tag: ""
+  # Optional override for the feature service endpoint; defaults to the feature service name
+  endpoint: ""
   resources: {}
 
 ui:
@@ -44,6 +46,8 @@ ui:
   image:
     repository: ghcr.io/dkrizic/feature-ui
     tag: ""
+  # Optional override for the feature service endpoint; defaults to the feature service name
+  endpoint: ""
   livenessProbe:
     httpGet:
       path: /healthz

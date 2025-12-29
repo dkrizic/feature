@@ -57,6 +57,7 @@ The following table lists the main configurable parameters of the Feature chart 
 | `ui.enabled` | Enable the UI deployment | `true` |
 | `ui.replicaCount` | Number of UI replicas | `1` |
 | `ui.image.repository` | UI image repository | `ghcr.io/dkrizic/feature/feature-ui` |
+| `ui.endpoint` | Feature service endpoint (defaults to service name) | `""` |
 | `ui.ingress.enabled` | Enable Ingress for UI | `false` |
 | `ui.ingress.className` | Ingress class name | `""` |
 | `ui.ingress.annotations` | Ingress annotations | `{}` |
@@ -73,6 +74,7 @@ The following table lists the main configurable parameters of the Feature chart 
 | `cli.enabled` | Enable the CLI deployment | `true` |
 | `cli.replicaCount` | Number of CLI replicas | `1` |
 | `cli.image.repository` | CLI image repository | `ghcr.io/dkrizic/feature/feature-cli` |
+| `cli.endpoint` | Feature service endpoint (defaults to service name) | `""` |
 | `cli.resources` | CPU/Memory resource requests/limits | `{}` |
 
 ### Common Configuration
@@ -113,6 +115,42 @@ service:
   rbac:
     create: true  # Required for ConfigMap access
 ```
+
+## Endpoint Configuration
+
+The UI and CLI components need to communicate with the feature service. By default, both components automatically use the feature service name (the Kubernetes Service resource name) as their endpoint. This allows the chart to work out of the box without additional configuration.
+
+### Default Behavior
+
+When `ui.endpoint` and `cli.endpoint` are not specified (or set to empty string), the chart automatically configures them to use the feature service name:
+
+```yaml
+# No explicit endpoint configuration needed
+ui:
+  enabled: true
+
+cli:
+  enabled: true
+```
+
+The environment variable `ENDPOINT` is automatically set in both UI and CLI containers via ConfigMaps loaded with `envFrom`.
+
+### Custom Endpoint
+
+You can override the default endpoint if you need to point the UI or CLI to a different service:
+
+```yaml
+ui:
+  endpoint: "my-custom-service:8000"
+
+cli:
+  endpoint: "external-feature-service.example.com:8000"
+```
+
+This is useful when:
+- Using an external feature service
+- Connecting to a service in a different namespace
+- Using a custom DNS name or load balancer
 
 ## Exposing the UI
 
