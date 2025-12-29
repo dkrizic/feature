@@ -27,6 +27,6 @@
 
 2. To access the gRPC service:
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "feature.name" . }}-service,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8000:{{ .Values.service.port }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME {{ .Values.service.port }}:{{ .Values.service.port }}
 {{- end }}
 
