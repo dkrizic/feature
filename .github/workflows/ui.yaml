@@ -3,7 +3,7 @@
 # Build amd64 and arm64 images and push to GitHub Container Registry as a single multiarch image:
 # only get active on the patch /service
 
-name: Build and Push Feature Docker Image
+name: feature-ui
 on:
   push:
     branches:
