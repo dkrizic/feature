@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  feature:
+  - apiVersion: v2
+    appVersion: 0.0.2
+    created: "2025-12-29T16:04:39.721666043Z"
+    description: Feature service and multiple componenets
+    digest: 88e35cb8ad8e76d2fc1b965740b2667bd22d0fd06c86450ddb1f21ed97ee3812
+    name: feature
+    type: application
+    urls:
+    - https://dkrizic.github.io/feature/feature-1.0.0.tgz
+    version: 1.0.0
+generated: "2025-12-29T16:04:39.720180354Z"
