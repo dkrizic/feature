@@ -9,6 +9,12 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+// Feature represents a feature flag with a key and value.
+type Feature struct {
+	Key   string
+	Value string
+}
+
 // registerHandlers registers all HTTP handlers on the provided mux.
 func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("GET /", s.handleIndex)
@@ -47,10 +53,7 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Collect all features from the stream
-	var features []struct {
-		Key   string
-		Value string
-	}
+	var features []Feature
 
 	for {
 		kv, err := stream.Recv()
@@ -64,20 +67,14 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		features = append(features, struct {
-			Key   string
-			Value string
-		}{
+		features = append(features, Feature{
 			Key:   kv.Key,
 			Value: kv.Value,
 		})
 	}
 
 	data := struct {
-		Features []struct {
-			Key   string
-			Value string
-		}
+		Features []Feature
 	}{
 		Features: features,
 	}
