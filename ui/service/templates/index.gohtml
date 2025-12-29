@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Flags - UI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Feature Flags</h1>
+            <p>
+                <small>
+                    UI v{{.UIVersion}}
+                    {{if .BackendVersion}} · Backend v{{.BackendVersion}}{{end}}
+                </small>
+            </p>
+        </header>
+
+        <section>
+            <h2>Features</h2>
+            <div id="feature-list" 
+                 hx-get="/features/list" 
+                 hx-trigger="load" 
+                 hx-swap="innerHTML">
+                <p aria-busy="true">Loading features...</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

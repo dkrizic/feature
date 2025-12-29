@@ -1,0 +1,30 @@
+{{if .Features}}
+<table role="grid">
+    <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{range .Features}}
+        <tr>
+            <td>{{.Key}}</td>
+            <td>{{.Value}}</td>
+            <td>
+                <form hx-post="/features/delete" 
+                      hx-target="#feature-list" 
+                      hx-swap="innerHTML"
+                      style="margin: 0;">
+                    <input type="hidden" name="key" value="{{.Key}}">
+                    <button type="submit" class="secondary" style="margin: 0;">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
+{{else}}
+<p>No features found.</p>
+{{end}}
