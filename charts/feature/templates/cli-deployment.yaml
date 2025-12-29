@@ -39,6 +39,9 @@ spec:
           {{- end }}
           image: "{{ .Values.cli.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "feature.cli.fullname" . }}-env
           {{- with .Values.cli.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

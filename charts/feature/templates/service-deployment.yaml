@@ -44,13 +44,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          env:
-            - name: STORAGE_TYPE
-              value: {{ .Values.service.storageType | quote }}
-            {{- if and (eq .Values.service.storageType "configmap") .Values.service.configMap.name }}
-            - name: CONFIGMAP_NAME
-              value: {{ .Values.service.configMap.name | quote }}
-            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "feature.fullname" . }}-service-env
           {{- with .Values.service.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
