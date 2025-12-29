@@ -19,6 +19,8 @@ type Feature struct {
 func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("GET /", s.handleIndex)
 	mux.HandleFunc("GET /features/list", s.handleFeaturesList)
+	mux.HandleFunc("POST /features/create", s.handleFeatureCreate)
+	mux.HandleFunc("POST /features/update", s.handleFeatureUpdate)
 	mux.HandleFunc("POST /features/delete", s.handleFeatureDelete)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 }
@@ -84,6 +86,74 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+}
+
+// handleFeatureCreate creates a new feature flag and re-renders the list.
+func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		slog.Error("Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	key := r.FormValue("key")
+	if key == "" {
+		slog.Error("Missing key parameter")
+		http.Error(w, "Missing key parameter", http.StatusBadRequest)
+		return
+	}
+
+	value := r.FormValue("value")
+
+	// Call the gRPC backend to set (upsert)
+	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
+	if err != nil {
+		slog.Error("Failed to create feature", "key", key, "error", err)
+		http.Error(w, "Failed to create feature", http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("Feature created", "key", key, "value", value)
+
+	// Re-render the feature list by calling the list handler
+	s.handleFeaturesList(w, r)
+}
+
+// handleFeatureUpdate updates an existing feature flag and re-renders the list.
+func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		slog.Error("Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	key := r.FormValue("key")
+	if key == "" {
+		slog.Error("Missing key parameter")
+		http.Error(w, "Missing key parameter", http.StatusBadRequest)
+		return
+	}
+
+	value := r.FormValue("value")
+
+	// Call the gRPC backend to set (update)
+	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
+	if err != nil {
+		slog.Error("Failed to update feature", "key", key, "error", err)
+		http.Error(w, "Failed to update feature", http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("Feature updated", "key", key, "value", value)
+
+	// Re-render the feature list by calling the list handler
+	s.handleFeaturesList(w, r)
 }
 
 // handleFeatureDelete deletes a feature and re-renders the list.
