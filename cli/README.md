@@ -37,7 +37,6 @@ Global flags can be set via command-line options or environment variables:
 
 - `--endpoint` (env: `ENDPOINT`)
   - Feature service endpoint address
-  - Required
   - Default: `localhost:8000`
 
 ## Commands
@@ -60,7 +59,7 @@ feature getall
 
 ### get
 
-Fetches a single feature by its key. When successful, prints the feature name.
+Fetches a single feature by its key. When successful, prints the feature key.
 
 ```bash
 feature get <key>
