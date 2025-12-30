@@ -22,7 +22,7 @@ metadata:
     {{- include "feature.labels" . | nindent 4 }}
     app.kubernetes.io/component: ui
 data:
-  ENDPOINT: {{ default (include "feature.fullname" .) .Values.ui.endpoint | quote }}
+  ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.ui.endpoint | quote }}
 {{- end }}
 {{- if .Values.cli.enabled }}
 ---
@@ -34,5 +34,5 @@ metadata:
     {{- include "feature.labels" . | nindent 4 }}
     app.kubernetes.io/component: cli
 data:
-  ENDPOINT: {{ default (include "feature.fullname" .) .Values.cli.endpoint | quote }}
+  ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.cli.endpoint | quote }}
 {{- end }}
