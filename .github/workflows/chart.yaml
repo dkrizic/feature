@@ -7,6 +7,8 @@ on:
     paths:
       - 'charts/feature/**'
       - '.github/workflows/chart.yaml'
+    tags:
+      - '*.*.*'
   workflow_dispatch:
 
 permissions:
@@ -47,6 +49,18 @@ jobs:
             git rm -rf . || true
             cd ..
           fi
+
+      # Update Chart.yaml with current tag version before packaging
+      # When triggered by a tag (e.g., 1.2.3), this sets both version and appVersion to that tag
+      # For non-tag builds (main branch), it uses the branch name or defaults remain unchanged
+      - name: Update Chart version
+        run: |
+          CHART_VERSION="${{ github.ref_name }}"
+          echo "Updating Chart.yaml with version: $CHART_VERSION"
+          yq eval ".version = \"$CHART_VERSION\"" -i charts/feature/Chart.yaml
+          yq eval ".appVersion = \"$CHART_VERSION\"" -i charts/feature/Chart.yaml
+          echo "Updated Chart.yaml:"
+          cat charts/feature/Chart.yaml
 
       - name: Package Helm chart
         run: |
