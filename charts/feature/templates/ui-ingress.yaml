@@ -38,7 +38,7 @@ spec:
               service:
                 name: {{ include "feature.ui.fullname" $ }}
                 port:
-                  number: 80
+                  number: {{ $.Values.ui.service.port }}
           {{- end }}
     {{- end }}
 {{- end }}
