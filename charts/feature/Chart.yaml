@@ -2,5 +2,5 @@ apiVersion: v2
 name: feature
 description: Feature service and multiple componenets
 type: application
-version: 1.0.0
-appVersion: "0.0.3"
+version: "0.0.0"
+appVersion: "UNDEFINED"
