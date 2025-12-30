@@ -42,7 +42,8 @@ The following table lists the main configurable parameters of the Feature chart 
 | `service.enabled` | Enable the feature service deployment | `true` |
 | `service.replicaCount` | Number of service replicas (must be 1 for inmemory storage) | `1` |
 | `service.image.repository` | Service image repository | `ghcr.io/dkrizic/feature/feature` |
-| `service.port` | Service gRPC port | `8000` |
+| `service.port` | Service gRPC port (container port) | `8000` |
+| `service.service.port` | Kubernetes Service port (the port the Service listens on) | `80` |
 | `service.storageType` | Storage backend type (`inmemory` or `configmap`) | `inmemory` |
 | `service.configMap.name` | ConfigMap name (only for configmap storage) | `""` |
 | `service.rbac.create` | Create RBAC resources for ConfigMap access | `true` |

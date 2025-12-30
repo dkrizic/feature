@@ -10,6 +10,10 @@ service:
     repository: ghcr.io/dkrizic/feature
     tag: ""
   port: 8000
+  # Service configuration for Kubernetes Service resource
+  service:
+    # The port that the Kubernetes Service listens on
+    port: 80
   # The storage type, either "inmemory" or "configmap"
   storageType: inmemory
   # ConfigMap data, only used if storageType is "configmap"
