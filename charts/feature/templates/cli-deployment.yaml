@@ -39,7 +39,6 @@ spec:
           {{- end }}
           image: "{{ .Values.cli.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
-          command: ["/app/feature-cli"]
           envFrom:
             - configMapRef:
                 name: {{ include "feature.cli.fullname" . }}
