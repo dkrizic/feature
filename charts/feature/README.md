@@ -201,6 +201,12 @@ These resources are created when both `service.rbac.create` and `serviceAccount.
 
 The chart uses the `appVersion` field from `Chart.yaml` as the image tag for all components. This ensures consistent versioning across the service, UI, and CLI.
 
+### Version Management
+
+- **Local Development**: The default values in `Chart.yaml` are `version: "0.0.0"` and `appVersion: "UNDEFINED"`, which are used when working with the chart locally.
+- **CI/CD Releases**: When the chart is built and released through the CI pipeline (triggered by git tags matching `*.*.*`), both `version` and `appVersion` are automatically updated to match the git tag before packaging. For example, if you tag a release as `1.2.3`, the packaged chart will have both `version: "1.2.3"` and `appVersion: "1.2.3"`.
+- This automation ensures that released charts always have proper version numbers and use the correct image tags without manual updates to `Chart.yaml`.
+
 ## Uninstallation
 
 ```bash
