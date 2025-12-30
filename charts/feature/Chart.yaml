@@ -1,6 +1,6 @@
 apiVersion: v2
 name: feature
-description: Feature service and multiple componenets
+description: Feature service and multiple components
 type: application
 # version and appVersion are automatically updated by CI pipeline when building releases
 # During CI builds triggered by tags, these values are set to the current git tag

@@ -52,7 +52,7 @@ jobs:
 
       # Update Chart.yaml with current tag version before packaging
       # When triggered by a tag (e.g., 1.2.3), this sets both version and appVersion to that tag
-      # For non-tag builds (main branch), it uses the branch name or defaults remain unchanged
+      # For non-tag builds (e.g., main branch), it sets both to the branch name
       - name: Update Chart version
         run: |
           CHART_VERSION="${{ github.ref_name }}"
