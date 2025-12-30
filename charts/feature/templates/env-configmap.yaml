@@ -17,7 +17,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "feature.ui.fullname" . }}-env
+  name: {{ include "feature.ui.fullname" . }}
   labels:
     {{- include "feature.labels" . | nindent 4 }}
     app.kubernetes.io/component: ui
@@ -29,7 +29,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "feature.cli.fullname" . }}-env
+  name: {{ include "feature.cli.fullname" . }}
   labels:
     {{- include "feature.labels" . | nindent 4 }}
     app.kubernetes.io/component: cli
