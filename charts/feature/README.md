@@ -46,6 +46,7 @@ The following table lists the main configurable parameters of the Feature chart 
 | `service.service.port` | Kubernetes Service port (the port the Service listens on) | `80` |
 | `service.storageType` | Storage backend type (`inmemory` or `configmap`) | `inmemory` |
 | `service.configMap.name` | ConfigMap name (only for configmap storage) | `""` |
+| `service.preset` | Pre-set key-value pairs (comma-separated, format: key=value) | `"COLOR=red,THEME=dark,BOOKING=true"` |
 | `service.rbac.create` | Create RBAC resources for ConfigMap access | `true` |
 | `service.resources` | CPU/Memory resource requests/limits | `{}` |
 | `service.livenessProbe` | Liveness probe configuration | `grpc on http port` |

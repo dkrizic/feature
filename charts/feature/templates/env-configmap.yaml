@@ -10,6 +10,7 @@ data:
   STORAGE_TYPE: {{ .Values.service.storageType | quote }}
   CONFIGMAP_NAME: {{ .Values.service.configMap.name | quote }}
   PORT: {{ .Values.service.port | quote }}
+  PRESET: {{ .Values.service.preset | quote }}
 {{- end }}
 {{- if .Values.ui.enabled }}
 ---

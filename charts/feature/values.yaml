@@ -19,6 +19,8 @@ service:
   # ConfigMap data, only used if storageType is "configmap"
   configMap:
     name: ""
+  # Pre-set key-value pairs in the format key=value (comma-separated)
+  preset: "COLOR=red,THEME=dark,BOOKING=true"
   serviceAccount:
     create: true
   rbac:
