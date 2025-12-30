@@ -3,7 +3,7 @@ entries:
   feature:
   - apiVersion: v2
     appVersion: 0.0.3
-    created: "2025-12-30T01:40:13.624542055Z"
+    created: "2025-12-30T01:51:35.636840831Z"
     description: Feature service and multiple componenets
     digest: fba3e20c21622f7b2c051ac042501d26b8d2e950d275eac695ab943fe0e8d3af
     name: feature
@@ -12,8 +12,18 @@ entries:
     - https://dkrizic.github.io/feature/feature-1.0.0.tgz
     version: 1.0.0
   - apiVersion: v2
+    appVersion: 0.0.4
+    created: "2025-12-30T01:51:35.63609942Z"
+    description: Feature service and multiple components
+    digest: 679ff90c519ee2e6bed50ddfbb5d1fa31062d032b3acfd07caecbb095475942f
+    name: feature
+    type: application
+    urls:
+    - https://dkrizic.github.io/feature/feature-0.0.4.tgz
+    version: 0.0.4
+  - apiVersion: v2
     appVersion: UNDEFINED
-    created: "2025-12-30T01:40:13.623938574Z"
+    created: "2025-12-30T01:51:35.635533797Z"
     description: Feature service and multiple componenets
     digest: e51387cef1b400d6340325ed9d9d414561c5ec8460a7f88eb2c17bbbeccf99a6
     name: feature
@@ -21,4 +31,4 @@ entries:
     urls:
     - https://dkrizic.github.io/feature/feature-0.0.0.tgz
     version: 0.0.0
-generated: "2025-12-30T01:40:13.623231875Z"
+generated: "2025-12-30T01:51:35.634839173Z"
