@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'charts/feature/**'
-      - '.github/workflows/chart.yaml'
+      - 'chartrelease.yaml'
     tags:
       - '*.*.*'
   workflow_dispatch:

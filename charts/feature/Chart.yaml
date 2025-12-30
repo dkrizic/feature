@@ -5,5 +5,5 @@ type: application
 # version and appVersion are automatically updated by CI pipeline when building releases
 # During CI builds triggered by tags, these values are set to the current git tag
 # The default values below are used for local development and non-release builds
-version: "0.0.0"
-appVersion: "UNDEFINED"
+version: "0.0.5"
+appVersion: "0.0.0"

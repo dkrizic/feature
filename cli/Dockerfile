@@ -14,5 +14,4 @@ RUN go test ./...
 FROM alpine:3.23.2
 COPY --from=builder /app/feature-cli /app/feature-cli
 EXPOSE 8000
-ENTRYPOINT ["tail", "-f"]
-CMD ["/dev/null"]
+ENTRYPOINT ["sh", "-c", "trap : TERM INT; sleep infinity & wait"]

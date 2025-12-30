@@ -1,0 +1,14 @@
+{{- if .Values.service.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "feature.fullname" . }}
+  labels:
+    {{- include "feature.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service
+data:
+  STORAGE_TYPE: {{ .Values.service.storageType | quote }}
+  CONFIGMAP_NAME: {{ .Values.service.configMap.name | quote }}
+  PORT: {{ .Values.service.port | quote }}
+  PRESET: {{ .Values.service.preset | quote }}
+{{- end }}

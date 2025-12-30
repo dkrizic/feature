@@ -1,0 +1,12 @@
+{{- if .Values.ui.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "feature.ui.fullname" . }}
+  labels:
+    {{- include "feature.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+data:
+  ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.ui.endpoint | quote }}
+  PORT: {{ .Values.ui.port | quote }}
+{{- end }}
