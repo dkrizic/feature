@@ -53,6 +53,9 @@ ui:
     repository: ghcr.io/dkrizic/feature-ui
     tag: ""
   # Optional override for the feature service endpoint; defaults to the feature service name
+  port: 8000
+  service:
+    port: 80
   endpoint: ""
   livenessProbe:
     httpGet:
