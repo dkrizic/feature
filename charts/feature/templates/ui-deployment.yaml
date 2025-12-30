@@ -45,7 +45,7 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "feature.ui.fullname" . }}-env
+                name: {{ include "feature.ui.fullname" . }}
           {{- with .Values.ui.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
