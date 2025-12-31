@@ -13,9 +13,22 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// configMapClient is an interface for ConfigMap operations to allow testing
+type configMapClient interface {
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConfigMap, error)
+	Create(ctx context.Context, configMap *v1.ConfigMap, opts metav1.CreateOptions) (*v1.ConfigMap, error)
+	Update(ctx context.Context, configMap *v1.ConfigMap, opts metav1.UpdateOptions) (*v1.ConfigMap, error)
+}
+
 type Persistence struct {
 	configMapName string
 }
+
+// Injectable function variables for testing
+var (
+	k8sClientFn    func(context.Context, string) (configMapClient, *string, error) = k8sClient
+	ownNamespaceFn                                                                  = ownNamespace
+)
 
 func NewPersistence(configMapName string) *Persistence {
 	return &Persistence{
@@ -48,12 +61,14 @@ func (p *Persistence) PreSet(ctx context.Context, kv persistence.KeyValue) error
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	if configMap.Data[kv.Key] != string(kv.Value) {
+	
+	// Only set if key doesn't exist
+	if _, exists := configMap.Data[kv.Key]; exists {
 		// do not change if there is already a value
 		return nil
 	}
+	
 	configMap.Data[kv.Key] = kv.Value
-
 	return p.saveConfigMap(ctx, *configMap)
 }
 
@@ -99,13 +114,13 @@ func (p *Persistence) Delete(ctx context.Context, key string) error {
 }
 
 func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap, error) {
-	clientset, namespace, err := k8sClient(ctx)
+	configMapClient, namespace, err := k8sClientFn(ctx, p.configMapName)
 	if err != nil {
 		return nil, err
 	}
 	slog.Debug("Running in namespace", "namespace", *namespace)
 
-	configMap, err := clientset.CoreV1().ConfigMaps(*namespace).Get(ctx, p.configMapName, metav1.GetOptions{})
+	configMap, err := configMapClient.Get(ctx, p.configMapName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// ConfigMap does not exist, create it
@@ -115,10 +130,11 @@ func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap,
 				},
 				Data: map[string]string{},
 			}
-			_, err = clientset.CoreV1().ConfigMaps(*namespace).Create(ctx, newConfigMap, metav1.CreateOptions{})
+			createdConfigMap, err := configMapClient.Create(ctx, newConfigMap, metav1.CreateOptions{})
 			if err != nil {
 				return nil, err
 			}
+			return createdConfigMap, nil
 		} else {
 			return nil, err
 		}
@@ -126,7 +142,7 @@ func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap,
 	return configMap, nil
 }
 
-func k8sClient(ctx context.Context) (client *kubernetes.Clientset, namespace *string, err error) {
+func k8sClient(ctx context.Context, configMapName string) (client configMapClient, namespace *string, err error) {
 	rc, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, err
@@ -139,20 +155,21 @@ func k8sClient(ctx context.Context) (client *kubernetes.Clientset, namespace *st
 	}
 
 	// get own namespace
-	namespace, err = ownNamespace(ctx)
+	namespace, err = ownNamespaceFn(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	return clientset, namespace, nil
+	
+	return clientset.CoreV1().ConfigMaps(*namespace), namespace, nil
 }
 
 func (p *Persistence) saveConfigMap(ctx context.Context, configMap v1.ConfigMap) error {
-	clientset, namespace, err := k8sClient(ctx)
+	configMapClient, _, err := k8sClientFn(ctx, p.configMapName)
 	if err != nil {
 		return err
 	}
 
-	_, err = clientset.CoreV1().ConfigMaps(*namespace).Update(ctx, &configMap, metav1.UpdateOptions{})
+	_, err = configMapClient.Update(ctx, &configMap, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
