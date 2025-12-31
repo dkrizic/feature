@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 
 # Build statically and set the value of meta.Version to the arg VERSION
-RUN go build -ldflags "-s -w -X 'meta.Version=${VERSION}'" -o feature main.go
+RUN go build -ldflags "-s -w -X 'github.com/dkrizic/feature/service/meta.Version=${VERSION}'" -o feature main.go
 
 # Run all tests
 RUN go test ./...
