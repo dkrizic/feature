@@ -34,7 +34,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install yq
-        uses: mikefarah/yq@v4.44.6
+        uses: mikefarah/yq@v4.50.1
 
       - name: Prepare gh-pages branch
         run: |
