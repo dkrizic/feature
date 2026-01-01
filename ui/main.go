@@ -66,7 +66,9 @@ func main() {
 			&cli.Command{
 				Name:   "service",
 				Usage:  "Start the feature service",
+				Before: service.Before,
 				Action: service.Service,
+				After:  service.After,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:     constant.Port,

@@ -7,6 +7,8 @@ import (
 	"sort"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -18,16 +20,19 @@ type Feature struct {
 
 // registerHandlers registers all HTTP handlers on the provided mux.
 func (s *Server) registerHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("GET /", s.handleIndex)
-	mux.HandleFunc("GET /features/list", s.handleFeaturesList)
-	mux.HandleFunc("POST /features/create", s.handleFeatureCreate)
-	mux.HandleFunc("POST /features/update", s.handleFeatureUpdate)
-	mux.HandleFunc("POST /features/delete", s.handleFeatureDelete)
-	mux.HandleFunc("GET /healthz", s.handleHealth)
+	mux.HandleFunc("GET /", otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP)
+	mux.HandleFunc("GET /features/list", otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP)
+	mux.HandleFunc("POST /features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
+	mux.HandleFunc("POST /features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
+	mux.HandleFunc("POST /features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
+	mux.HandleFunc("GET /healthz", otelhttp.NewHandler(http.HandlerFunc(s.handleHealth), "handleHealth").ServeHTTP)
 }
 
 // handleIndex renders the full HTML page with HTMX.
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	_, span := otel.Tracer("ui/service").Start(r.Context(), "handleIndex")
+	defer span.End()
+
 	data := struct {
 		UIVersion      string
 		BackendVersion string
@@ -45,7 +50,8 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 // handleFeaturesList calls the gRPC backend to get all features and renders the partial.
 func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeaturesList")
+	defer span.End()
 
 	// Call the gRPC backend
 	stream, err := s.featureClient.GetAll(ctx, &emptypb.Empty{})
@@ -96,7 +102,8 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 
 // handleFeatureCreate creates a new feature flag and re-renders the list.
 func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeatureCreate")
+	defer span.End()
 
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
@@ -130,7 +137,8 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 
 // handleFeatureUpdate updates an existing feature flag and re-renders the list.
 func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeatureUpdate")
+	defer span.End()
 
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
@@ -164,7 +172,8 @@ func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
 
 // handleFeatureDelete deletes a feature and re-renders the list.
 func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeatureDelete")
+	defer span.End()
 
 	// Parse form data
 	if err := r.ParseForm(); err != nil {

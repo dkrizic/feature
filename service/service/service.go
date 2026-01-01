@@ -79,7 +79,7 @@ func After(ctx context.Context, cmd *cli.Command) error {
 func Service(ctx context.Context, cmd *cli.Command) error {
 	// get the port
 	port := cmd.Int("port")
-	slog.InfoContext(ctx, "Using port", "port", port)
+	slog.InfoContext(ctx, "Configuration", "port", port)
 
 	// configure persistence based on storage type
 	var pers persistence.Persistence
