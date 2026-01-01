@@ -1,0 +1,28 @@
+services:
+  service:
+    image: ghcr.io/dkrizic/feature:latest
+    ports:
+      - name: http
+        target: 8000
+    environment:
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+      - PORT=8000
+      - PRESET=COLOR=red,THEME=dark,BOOKING=true
+      - STORAGE_TYPE=inmemory
+  ui:
+    image: ghcr.io/dkrizic/feature-ui:latest
+    ports:
+      - name: http
+        target: 8000
+    environment:
+      - PORT=8000
+      - ENDPOINT=service:8000
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+  cli:
+    image: ghcr.io/dkrizic/feature-cli:latest
+    environment:
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+      - ENDPOINT=service:8000
