@@ -14,9 +14,13 @@ import (
 	"github.com/dkrizic/feature/cli/command/set"
 	"github.com/dkrizic/feature/cli/constant"
 	"github.com/dkrizic/feature/cli/meta"
+	metaversion "github.com/dkrizic/feature/cli/meta"
+	"github.com/dkrizic/feature/cli/telemetry"
 	"github.com/dkrizic/feature/cli/telemetry/otelslog"
 	"github.com/urfave/cli/v3" // imports as package "cli"
 )
+
+var otelShutdown func(ctx context.Context) error = nil
 
 func main() {
 	cmd := &cli.Command{
@@ -57,8 +61,23 @@ func main() {
 				Required: true,
 				Sources:  cli.EnvVars("ENDPOINT"),
 			},
+			&cli.BoolFlag{
+				Name:     constant.EnableOpenTelemetry,
+				Value:    false,
+				Category: "observability",
+				Usage:    "Enable OpenTelemetry tracing",
+				Sources:  cli.EnvVars("ENABLE_OPENTELEMETRY"),
+			},
+			&cli.StringFlag{
+				Name:     constant.OTLPEndpoint,
+				Value:    "",
+				Category: "observability",
+				Usage:    "OTLP endpoint for OpenTelemetry",
+				Sources:  cli.EnvVars("OTLP_ENDPOINT"),
+			},
 		},
-		Before: beforeAction,
+		Before: before,
+		After:  after,
 		Commands: []*cli.Command{
 			&cli.Command{
 				Name:  "version",
@@ -127,7 +146,7 @@ func main() {
 	}
 }
 
-func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+func before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	logFormat := cmd.String(constant.LogFormat)
 	logLevel := cmd.String(constant.LogLevel)
 
@@ -157,5 +176,41 @@ func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error
 	logger := slog.New(otelhttp)
 	slog.SetDefault(logger)
 
+	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
+	otelEndpoint := cmd.String(constant.OTLPEndpoint)
+
+	if otelEnabled {
+		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)
+		if otelEndpoint == "" {
+			slog.Error("OTLP endpoint is required when OpenTelemetry is enabled")
+			return ctx, fmt.Errorf("otlp endpoint is required when OpenTelemetry is enabled")
+		}
+		shutdown, err := telemetry.OpenTelemetryConfig{
+			ServiceName:    metaversion.Service,
+			ServiceVersion: metaversion.Version,
+			OTLPEndpoint:   otelEndpoint,
+		}.InitOpenTelemetry(ctx)
+		if err != nil {
+			slog.Error("Failed to initialize OpenTelemetry", "error", err)
+			return ctx, fmt.Errorf("failed to initialize OpenTelemetry: %w", err)
+		}
+		otelShutdown = shutdown
+	} else {
+		slog.InfoContext(ctx, "OpenTelemetry disabled")
+	}
+
 	return ctx, nil
+}
+
+func after(ctx context.Context, cmd *cli.Command) error {
+	if otelShutdown != nil {
+		slog.InfoContext(ctx, "Shutting down OpenTelemetry")
+		err := otelShutdown(ctx)
+		if err != nil {
+			slog.Error("Failed to shut down OpenTelemetry", "error", err)
+			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
+		}
+	}
+	slog.Info("Shutting down service", "version", metaversion.Version)
+	return nil
 }

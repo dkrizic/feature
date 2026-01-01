@@ -64,7 +64,6 @@ func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 }
 
 func After(ctx context.Context, cmd *cli.Command) error {
-	slog.Info("Shutting down service", "version", metaversion.Version)
 	if otelShutdown != nil {
 		slog.InfoContext(ctx, "Shutting down OpenTelemetry")
 		err := otelShutdown(ctx)
@@ -73,6 +72,7 @@ func After(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
 		}
 	}
+	slog.Info("Shutting down service", "version", metaversion.Version)
 	return nil
 }
 

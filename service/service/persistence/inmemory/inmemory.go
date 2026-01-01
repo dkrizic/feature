@@ -39,7 +39,7 @@ func (p *Persistence) PreSet(ctx context.Context, kv persistence.KeyValue) error
 		slog.DebugContext(ctx, "PreSetting", "key", kv.Key, "value", kv.Value)
 		p.data[kv.Key] = kv.Value
 	} else {
-		slog.Info("Key already exists, not presetting", "key", kv.Key, "value", kv.Value, "oldvalue", oldvalue)
+		slog.InfoContext(ctx, "Key already exists, not presetting", "key", kv.Key, "value", kv.Value, "oldvalue", oldvalue)
 	}
 	return nil
 

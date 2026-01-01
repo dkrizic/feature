@@ -9,6 +9,7 @@ import (
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -30,7 +31,7 @@ func (s *Server) registerHandlers(mux *http.ServeMux) {
 
 // handleIndex renders the full HTML page with HTMX.
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	_, span := otel.Tracer("ui/service").Start(r.Context(), "handleIndex")
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleIndex")
 	defer span.End()
 
 	data := struct {
@@ -42,8 +43,9 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "index.gohtml", data); err != nil {
-		slog.Error("Failed to render index template", "error", err)
+		slog.ErrorContext(ctx, "Failed to render index template", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 }
@@ -53,11 +55,14 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeaturesList")
 	defer span.End()
 
+	slog.InfoContext(ctx, "Fetching all features from backend")
+
 	// Call the gRPC backend
 	stream, err := s.featureClient.GetAll(ctx, &emptypb.Empty{})
 	if err != nil {
-		slog.Error("Failed to call GetAll", "error", err)
+		slog.ErrorContext(ctx, "Failed to call GetAll", "error", err)
 		http.Error(w, "Failed to fetch features", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
@@ -71,8 +76,9 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			slog.Error("Failed to receive feature", "error", err)
+			slog.ErrorContext(ctx, "Failed to receive feature", "error", err)
 			http.Error(w, "Failed to fetch features", http.StatusInternalServerError)
+			span.SetStatus(codes.Error, err.Error())
 			return
 		}
 
@@ -94,8 +100,9 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "features_list.gohtml", data); err != nil {
-		slog.Error("Failed to render features_list template", "error", err)
+		slog.ErrorContext(ctx, "Failed to render features_list template", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 }
@@ -105,10 +112,13 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleFeatureCreate")
 	defer span.End()
 
+	slog.InfoContext(ctx, "Creating feature")
+
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
-		slog.Error("Failed to parse form", "error", err)
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
@@ -116,6 +126,7 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 	if key == "" {
 		slog.Error("Missing key parameter")
 		http.Error(w, "Missing key parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing key parameter")
 		return
 	}
 
@@ -124,12 +135,13 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 	// Call the gRPC backend to set (upsert)
 	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
 	if err != nil {
-		slog.Error("Failed to create feature", "key", key, "error", err)
+		slog.ErrorContext(ctx, "Failed to create feature", "key", key, "error", err)
 		http.Error(w, "Failed to create feature", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
-	slog.Info("Feature created", "key", key, "value", value)
+	slog.InfoContext(ctx, "Feature created", "key", key, "value", value)
 
 	// Re-render the feature list by calling the list handler
 	s.handleFeaturesList(w, r)
@@ -142,15 +154,17 @@ func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
-		slog.Error("Failed to parse form", "error", err)
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
 	key := r.FormValue("key")
 	if key == "" {
-		slog.Error("Missing key parameter")
+		slog.ErrorContext(ctx, "Missing key parameter")
 		http.Error(w, "Missing key parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing key parameter")
 		return
 	}
 
@@ -159,12 +173,13 @@ func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
 	// Call the gRPC backend to set (update)
 	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
 	if err != nil {
-		slog.Error("Failed to update feature", "key", key, "error", err)
+		slog.ErrorContext(ctx, "Failed to update feature", "key", key, "error", err)
 		http.Error(w, "Failed to update feature", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
-	slog.Info("Feature updated", "key", key, "value", value)
+	slog.InfoContext(ctx, "Feature updated", "key", key, "value", value)
 
 	// Re-render the feature list by calling the list handler
 	s.handleFeaturesList(w, r)
@@ -177,27 +192,30 @@ func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
 
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
-		slog.Error("Failed to parse form", "error", err)
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
 	key := r.FormValue("key")
 	if key == "" {
-		slog.Error("Missing key parameter")
+		slog.ErrorContext(ctx, "Missing key parameter")
 		http.Error(w, "Missing key parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing key parameter")
 		return
 	}
 
 	// Call the gRPC backend to delete
 	_, err := s.featureClient.Delete(ctx, &featurev1.Key{Name: key})
 	if err != nil {
-		slog.Error("Failed to delete feature", "key", key, "error", err)
+		slog.ErrorContext(ctx, "Failed to delete feature", "key", key, "error", err)
 		http.Error(w, "Failed to delete feature", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
-	slog.Info("Feature deleted", "key", key)
+	slog.InfoContext(ctx, "Feature deleted", "key", key)
 
 	// Re-render the feature list by calling the list handler
 	s.handleFeaturesList(w, r)

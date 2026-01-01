@@ -38,7 +38,7 @@ type Server struct {
 var otelShutdown func(ctx context.Context) error = nil
 
 func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-	slog.Info("Starting UI", "version", metaversion.Version)
+	slog.InfoContext(ctx, "Starting UI", "version", metaversion.Version)
 
 	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
 	otelEndpoint := cmd.String(constant.OTLPEndpoint)
@@ -46,7 +46,7 @@ func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	if otelEnabled {
 		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)
 		if otelEndpoint == "" {
-			slog.Error("OTLP endpoint is required when OpenTelemetry is enabled")
+			slog.ErrorContext(ctx, "OTLP endpoint is required when OpenTelemetry is enabled")
 			return ctx, fmt.Errorf("otlp endpoint is required when OpenTelemetry is enabled")
 		}
 		shutdown, err := telemetry.OpenTelemetryConfig{
@@ -55,7 +55,7 @@ func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 			OTLPEndpoint:   otelEndpoint,
 		}.InitOpenTelemetry(ctx)
 		if err != nil {
-			slog.Error("Failed to initialize OpenTelemetry", "error", err)
+			slog.ErrorContext(ctx, "Failed to initialize OpenTelemetry", "error", err)
 			return ctx, fmt.Errorf("failed to initialize OpenTelemetry: %w", err)
 		}
 		otelShutdown = shutdown
@@ -67,15 +67,15 @@ func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 }
 
 func After(ctx context.Context, cmd *cli.Command) error {
-	slog.Info("Shutting down UI", "version", metaversion.Version)
 	if otelShutdown != nil {
 		slog.InfoContext(ctx, "Shutting down OpenTelemetry")
 		err := otelShutdown(ctx)
 		if err != nil {
-			slog.Error("Failed to shut down OpenTelemetry", "error", err)
+			slog.ErrorContext(ctx, "Failed to shut down OpenTelemetry", "error", err)
 			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
 		}
 	}
+	slog.InfoContext(ctx, "Shutting down UI", "version", metaversion.Version)
 	return nil
 }
 
@@ -84,7 +84,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
 
-	slog.Info("Configuration", "port", port, "endpoint", endpoint)
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint)
 
 	// Parse templates
 	templates := ParseTemplates()
@@ -98,7 +98,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
-		slog.Error("Failed to dial gRPC backend", "endpoint", endpoint, "error", err)
+		slog.ErrorContext(ctx, "Failed to dial gRPC backend", "endpoint", endpoint, "error", err)
 		return fmt.Errorf("failed to dial gRPC backend: %w", err)
 	}
 	defer conn.Close()
@@ -113,10 +113,10 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	defer cancel()
 	metaResp, err := metaClient.Meta(metaCtx, &metav1.MetaRequest{})
 	if err != nil {
-		slog.Warn("Failed to fetch backend version", "error", err)
+		slog.WarnContext(ctx, "Failed to fetch backend version", "error", err)
 	} else {
 		backendVersion = metaResp.Version
-		slog.Info("Backend version retrieved", "version", backendVersion)
+		slog.InfoContext(ctx, "Backend version retrieved", "version", backendVersion)
 	}
 
 	// Create server
@@ -142,7 +142,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Start HTTP server in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		slog.Info("HTTP server listening", "address", server.address)
+		slog.InfoContext(ctx, "HTTP server listening", "address", server.address)
 		if err := server.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}
@@ -155,11 +155,11 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Wait for shutdown signal or error
 	select {
 	case <-ctx.Done():
-		slog.Info("Context canceled, shutting down")
+		slog.InfoContext(ctx, "Context canceled, shutting down")
 	case sig := <-cancelChan:
-		slog.Info("Received signal, shutting down", "signal", sig)
+		slog.InfoContext(ctx, "Received signal, shutting down", "signal", sig)
 	case err := <-errChan:
-		slog.Error("HTTP server error", "error", err)
+		slog.ErrorContext(ctx, "HTTP server error", "error", err)
 		return err
 	}
 
@@ -167,12 +167,12 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
-	slog.Info("Shutting down HTTP server gracefully")
+	slog.InfoContext(ctx, "Shutting down HTTP server gracefully")
 	if err := server.httpServer.Shutdown(shutdownCtx); err != nil {
-		slog.Error("Failed to shutdown HTTP server gracefully", "error", err)
+		slog.ErrorContext(ctx, "Failed to shutdown HTTP server gracefully", "error", err)
 		return err
 	}
 
-	slog.Info("Feature UI service stopped")
+	slog.InfoContext(ctx, "Feature UI service stopped")
 	return nil
 }

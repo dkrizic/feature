@@ -1,6 +1,25 @@
 services:
+  traefik:
+    image: traefik:v3.6.5
+    ports:
+      - "80:80"
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --entrypoints.web.address=:80
+      - --tracing.otlp=true
+      - --tracing.otlp.grpc=true
+      - --tracing.otlp.grpc.insecure=true
+      - --tracing.otlp.grpc.endpoint=dev-yasm.prodyna.com:4317
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+    depends_on:
+      - ui
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
   service:
     image: ghcr.io/dkrizic/feature:latest
+    pull_policy: always
     ports:
       - name: http
         target: 8000
@@ -10,8 +29,11 @@ services:
       - PORT=8000
       - PRESET=COLOR=red,THEME=dark,BOOKING=true
       - STORAGE_TYPE=inmemory
+      - ENABLE_OPENTELEMETRY=true
+      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
   ui:
     image: ghcr.io/dkrizic/feature-ui:latest
+    pull_policy: always
     ports:
       - name: http
         target: 8000
@@ -20,9 +42,23 @@ services:
       - ENDPOINT=service:8000
       - LOG_LEVEL=debug
       - LOG_FORMAT=json
+      - ENABLE_OPENTELEMETRY=true
+      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+    depends_on:
+      - service
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ui.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.ui.entrypoints=web"
+      - "traefik.http.services.ui.loadbalancer.server.port=8000"
   cli:
     image: ghcr.io/dkrizic/feature-cli:latest
+    pull_policy: always
     environment:
       - LOG_LEVEL=debug
       - LOG_FORMAT=json
       - ENDPOINT=service:8000
+      - ENABLE_OPENTELEMETRY=true
+      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+    depends_on:
+      - service

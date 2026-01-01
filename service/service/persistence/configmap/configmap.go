@@ -138,7 +138,7 @@ func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap,
 	if err != nil {
 		return nil, err
 	}
-	slog.Debug("Running in namespace", "namespace", *namespace)
+	slog.DebugContext(ctx, "Running in namespace", "namespace", *namespace)
 
 	configMap, err := configMapClient.Get(ctx, p.configMapName, metav1.GetOptions{})
 	if err != nil {
