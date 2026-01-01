@@ -41,7 +41,7 @@ func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	otelEndpoint := cmd.String(constant.OTLPEndpoint)
 
 	if otelEnabled {
-		slog.InfoContext(ctx, "OpenTelemetry enabled, endpoint", otelEndpoint)
+		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)
 		if otelEndpoint == "" {
 			slog.Error("OTLP endpoint is required when OpenTelemetry is enabled")
 			return ctx, fmt.Errorf("otlp endpoint is required when OpenTelemetry is enabled")
