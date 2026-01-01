@@ -10,6 +10,7 @@ import (
 	"github.com/dkrizic/feature/service/constant"
 	"github.com/dkrizic/feature/service/meta"
 	"github.com/dkrizic/feature/service/service"
+	"github.com/dkrizic/feature/service/telemetry/otelslog"
 	"github.com/urfave/cli/v3" // imports as package "cli"
 )
 
@@ -58,7 +59,9 @@ func main() {
 			&cli.Command{
 				Name:   "service",
 				Usage:  "Start the feature service",
+				Before: service.Before,
 				Action: service.Service,
+				After:  service.After,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:     constant.Port,
@@ -76,7 +79,7 @@ func main() {
 					},
 					&cli.StringFlag{
 						Name:     constant.OTLPEndpoint,
-						Value:    "localhost:4317",
+						Value:    "",
 						Category: "observability",
 						Usage:    "OTLP endpoint for OpenTelemetry",
 						Sources:  cli.EnvVars("OTLP_ENDPOINT"),
@@ -144,7 +147,9 @@ func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error
 		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
 
-	logger := slog.New(handler)
+	otelhandler := otelslog.NewHandler(handler)
+
+	logger := slog.New(otelhandler)
 	slog.SetDefault(logger)
 
 	return ctx, nil

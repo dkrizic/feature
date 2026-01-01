@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"github.com/dkrizic/feature/service/service/persistence"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +29,7 @@ type Persistence struct {
 // Injectable function variables for testing
 var (
 	k8sClientFn    func(context.Context, string) (configMapClient, *string, error) = k8sClient
-	ownNamespaceFn                                                                  = ownNamespace
+	ownNamespaceFn                                                                 = ownNamespace
 )
 
 func NewPersistence(configMapName string) *Persistence {
@@ -37,6 +39,9 @@ func NewPersistence(configMapName string) *Persistence {
 }
 
 func (p *Persistence) GetAll(ctx context.Context) ([]persistence.KeyValue, error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "GetAll")
+	defer span.End()
+
 	configMap, err := p.createOrLoadConfigMap(ctx)
 	if err != nil {
 		return nil, err
@@ -53,6 +58,9 @@ func (p *Persistence) GetAll(ctx context.Context) ([]persistence.KeyValue, error
 }
 
 func (p *Persistence) PreSet(ctx context.Context, kv persistence.KeyValue) error {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "PreSet")
+	defer span.End()
+
 	configMap, err := p.createOrLoadConfigMap(ctx)
 	if err != nil {
 		return err
@@ -61,18 +69,21 @@ func (p *Persistence) PreSet(ctx context.Context, kv persistence.KeyValue) error
 	if configMap.Data == nil {
 		configMap.Data = make(map[string]string)
 	}
-	
+
 	// Only set if key doesn't exist
 	if _, exists := configMap.Data[kv.Key]; exists {
 		// do not change if there is already a value
 		return nil
 	}
-	
+
 	configMap.Data[kv.Key] = kv.Value
 	return p.saveConfigMap(ctx, *configMap)
 }
 
 func (p *Persistence) Set(ctx context.Context, kv persistence.KeyValue) error {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "Set")
+	defer span.End()
+
 	configMap, err := p.createOrLoadConfigMap(ctx)
 	if err != nil {
 		return err
@@ -88,6 +99,9 @@ func (p *Persistence) Set(ctx context.Context, kv persistence.KeyValue) error {
 }
 
 func (p *Persistence) Get(ctx context.Context, key string) (persistence.KeyValue, error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "Get")
+	defer span.End()
+
 	configMap, err := p.createOrLoadConfigMap(ctx)
 	if err != nil {
 		return persistence.KeyValue{}, err
@@ -103,6 +117,9 @@ func (p *Persistence) Get(ctx context.Context, key string) (persistence.KeyValue
 }
 
 func (p *Persistence) Delete(ctx context.Context, key string) error {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "Delete")
+	defer span.End()
+
 	configMap, err := p.createOrLoadConfigMap(ctx)
 	if err != nil {
 		return err
@@ -114,6 +131,9 @@ func (p *Persistence) Delete(ctx context.Context, key string) error {
 }
 
 func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap, error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "createOrLoadConfigMap")
+	defer span.End()
+
 	configMapClient, namespace, err := k8sClientFn(ctx, p.configMapName)
 	if err != nil {
 		return nil, err
@@ -143,6 +163,9 @@ func (p *Persistence) createOrLoadConfigMap(ctx context.Context) (*v1.ConfigMap,
 }
 
 func k8sClient(ctx context.Context, configMapName string) (client configMapClient, namespace *string, err error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "k8sClient")
+	defer span.End()
+
 	rc, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, err
@@ -159,11 +182,14 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	return clientset.CoreV1().ConfigMaps(*namespace), namespace, nil
 }
 
 func (p *Persistence) saveConfigMap(ctx context.Context, configMap v1.ConfigMap) error {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "saveConfigMap")
+	defer span.End()
+
 	configMapClient, _, err := k8sClientFn(ctx, p.configMapName)
 	if err != nil {
 		return err
@@ -177,10 +203,15 @@ func (p *Persistence) saveConfigMap(ctx context.Context, configMap v1.ConfigMap)
 }
 
 func ownNamespace(ctx context.Context) (namespace *string, err error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "ownNamespace")
+	defer span.End()
+
 	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return nil, err
 	}
 	ns := string(data)
+
+	span.SetAttributes(attribute.String("namespace", ns))
 	return &ns, nil
 }

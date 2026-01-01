@@ -14,6 +14,7 @@ import (
 	"github.com/dkrizic/feature/cli/command/set"
 	"github.com/dkrizic/feature/cli/constant"
 	"github.com/dkrizic/feature/cli/meta"
+	"github.com/dkrizic/feature/cli/telemetry/otelslog"
 	"github.com/urfave/cli/v3" // imports as package "cli"
 )
 
@@ -151,7 +152,9 @@ func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error
 		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
 
-	logger := slog.New(handler)
+	otelhttp := otelslog.NewHandler(handler)
+
+	logger := slog.New(otelhttp)
 	slog.SetDefault(logger)
 
 	return ctx, nil

@@ -12,28 +12,74 @@ import (
 	"syscall"
 
 	"github.com/dkrizic/feature/service/constant"
-	"github.com/dkrizic/feature/service/service/feature"
-	"github.com/dkrizic/feature/service/service/feature/v1"
-	"github.com/dkrizic/feature/service/service/meta"
-	"github.com/dkrizic/feature/service/service/meta/v1"
 	"github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/service/persistence/configmap"
 	"github.com/dkrizic/feature/service/service/persistence/inmemory"
+	"github.com/dkrizic/feature/service/telemetry"
 	"github.com/urfave/cli/v3"
-
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/stats"
+
+	metaversion "github.com/dkrizic/feature/service/meta"
+
+	"github.com/dkrizic/feature/service/service/feature"
+	"github.com/dkrizic/feature/service/service/feature/v1"
+	"github.com/dkrizic/feature/service/service/meta"
+	"github.com/dkrizic/feature/service/service/meta/v1"
 )
+
+var otelShutdown func(ctx context.Context) error = nil
+
+func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	slog.Info("Starting service", "version", metaversion.Version)
+
+	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
+	otelEndpoint := cmd.String(constant.OTLPEndpoint)
+
+	if otelEnabled {
+		slog.InfoContext(ctx, "OpenTelemetry enabled, endpoint", otelEndpoint)
+		if otelEndpoint == "" {
+			slog.Error("OTLP endpoint is required when OpenTelemetry is enabled")
+			return ctx, fmt.Errorf("otlp endpoint is required when OpenTelemetry is enabled")
+		}
+		shutdown, err := telemetry.OpenTelemetryConfig{
+			ServiceName:    metaversion.Service,
+			ServiceVersion: metaversion.Version,
+			OTLPEndpoint:   otelEndpoint,
+		}.InitOpenTelemetry(ctx)
+		if err != nil {
+			slog.Error("Failed to initialize OpenTelemetry", "error", err)
+			return ctx, fmt.Errorf("failed to initialize OpenTelemetry: %w", err)
+		}
+		otelShutdown = shutdown
+	} else {
+		slog.InfoContext(ctx, "OpenTelemetry disabled")
+	}
+
+	return ctx, nil
+}
+
+func After(ctx context.Context, cmd *cli.Command) error {
+	slog.Info("Shutting down service", "version", metaversion.Version)
+	if otelShutdown != nil {
+		slog.InfoContext(ctx, "Shutting down OpenTelemetry")
+		err := otelShutdown(ctx)
+		if err != nil {
+			slog.Error("Failed to shut down OpenTelemetry", "error", err)
+			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
+		}
+	}
+	return nil
+}
 
 func Service(ctx context.Context, cmd *cli.Command) error {
 	// get the port
 	port := cmd.Int("port")
-	slog.InfoContext(ctx, "Starting the feature service", "port", port)
+	slog.InfoContext(ctx, "Using port", "port", port)
 
 	// configure persistence based on storage type
 	var pers persistence.Persistence
