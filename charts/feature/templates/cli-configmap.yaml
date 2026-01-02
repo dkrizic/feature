@@ -8,4 +8,6 @@ metadata:
     app.kubernetes.io/component: cli
 data:
   ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.cli.endpoint | quote }}
+  ENABLE_OPENTELEMETRY: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
+  OTLP_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
 {{- end }}

@@ -9,4 +9,6 @@ metadata:
 data:
   ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.ui.endpoint | quote }}
   PORT: {{ .Values.ui.port | quote }}
+  ENABLE_OPENTELEMETRY: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
+  OTLP_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
 {{- end }}

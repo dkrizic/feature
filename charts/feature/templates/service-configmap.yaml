@@ -11,4 +11,6 @@ data:
   CONFIGMAP_NAME: {{ .Values.service.configMap.name | quote }}
   PORT: {{ .Values.service.port | quote }}
   PRESET: {{ .Values.service.preset | quote }}
+  ENABLE_OPENTELEMETRY: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
+  OTLP_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
 {{- end }}
