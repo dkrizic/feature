@@ -83,7 +83,7 @@ func main() {
 				Name:  "version",
 				Usage: "Print the version number of the feature service",
 				Action: func(ctx context.Context, cmd *cli.Command) error {
-					slog.Info("Feature Service", "name", meta.Service, "version", meta.Version)
+					slog.InfoContext(ctx, "Feature Service", "name", meta.Service, "version", meta.Version)
 					return nil
 				},
 			},

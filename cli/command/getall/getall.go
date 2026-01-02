@@ -2,6 +2,7 @@ package getall
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/dkrizic/feature/cli/command"
 	"github.com/urfave/cli/v3"
@@ -18,6 +19,7 @@ func GetAll(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	slog.InfoContext(ctx, "Getting all features")
 	all, err := fc.GetAll(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
@@ -27,7 +29,7 @@ func GetAll(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			break
 		}
-		cmd.Writer.Write([]byte(kv.Key + ": " + kv.Value + "\n"))
+		slog.InfoContext(ctx, "Feature", "key", kv.Key, "value", kv.Value)
 	}
 	return nil
 }

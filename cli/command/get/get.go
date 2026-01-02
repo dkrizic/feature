@@ -21,7 +21,7 @@ func Get(ctx context.Context, cmd *cli.Command) error {
 
 	key := cmd.StringArg("key")
 
-	slog.Info("Getting feature", "key", key)
+	slog.InfoContext(ctx, "Getting feature", "key", key)
 	result, err := fc.Get(ctx, &feature.Key{
 		Name: key,
 	})

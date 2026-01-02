@@ -11,8 +11,6 @@ services:
       - --tracing.otlp.grpc=true
       - --tracing.otlp.grpc.insecure=true
       - --tracing.otlp.grpc.endpoint=dev-yasm.prodyna.com:4317
-    environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
     depends_on:
       - ui
     volumes:

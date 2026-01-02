@@ -87,7 +87,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint)
 
 	// Parse templates
-	templates := ParseTemplates()
+	templates := ParseTemplates(ctx)
 	if templates == nil {
 		return fmt.Errorf("failed to parse templates")
 	}
