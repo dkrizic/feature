@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParseTemplates(t *testing.T) {
-	tmpl := ParseTemplates()
+	ctx := context.Background()
+	tmpl := ParseTemplates(ctx)
 
 	assert.NotNil(t, tmpl, "ParseTemplates should return a non-nil template")
 
