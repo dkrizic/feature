@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/dkrizic/feature/cli/command/delete"
 	"github.com/dkrizic/feature/cli/command/get"
@@ -210,6 +211,7 @@ func after(ctx context.Context, cmd *cli.Command) error {
 			slog.Error("Failed to shut down OpenTelemetry", "error", err)
 			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
 		}
+		time.Sleep(2 * time.Second) // wait for logs to be exported
 	}
 	slog.Info("Shutting down service", "version", metaversion.Version)
 	return nil
