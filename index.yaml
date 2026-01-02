@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   feature:
   - apiVersion: v2
+    appVersion: 0.1.3
+    created: "2026-01-02T02:31:00.806967668Z"
+    description: Feature service and multiple components
+    digest: 05028a48f8cbc449f0ddaa6a9103bd9e9d6820b64fa447d21704e6badec7378d
+    name: feature
+    type: application
+    urls:
+    - https://dkrizic.github.io/feature/feature-0.1.3.tgz
+    version: 0.1.3
+  - apiVersion: v2
     appVersion: 0.1.2
-    created: "2026-01-02T02:15:46.143497326Z"
+    created: "2026-01-02T02:31:00.806495965Z"
     description: Feature service and multiple components
     digest: 936b764a1b7602e76306c610e2b28f52bf1fb73c830522db7b623d6e57e4e0ef
     name: feature
@@ -13,7 +23,7 @@ entries:
     version: 0.1.2
   - apiVersion: v2
     appVersion: 0.1.1
-    created: "2026-01-02T02:15:46.142932433Z"
+    created: "2026-01-02T02:31:00.806029046Z"
     description: Feature service and multiple components
     digest: b1523bfa80970d66718aba048156e0bd50ac2528a5929776243cfeedf955c023
     name: feature
@@ -23,7 +33,7 @@ entries:
     version: 0.1.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-01-02T02:15:46.142235564Z"
+    created: "2026-01-02T02:31:00.805482361Z"
     description: Feature service and multiple components
     digest: ce83927bc41e62f5d795a2a839602252821a1d82e76ff96d044a2007a15161d4
     name: feature
@@ -33,7 +43,7 @@ entries:
     version: 0.1.0
   - apiVersion: v2
     appVersion: 0.0.9
-    created: "2026-01-02T02:15:46.141699144Z"
+    created: "2026-01-02T02:31:00.804917619Z"
     description: Feature service and multiple components
     digest: c5345c139219f07adc5e4e916f7a25d4eeda37e6a2ab4bebf59895d6d170b83c
     name: feature
@@ -43,7 +53,7 @@ entries:
     version: 0.0.9
   - apiVersion: v2
     appVersion: 0.0.8
-    created: "2026-01-02T02:15:46.141158307Z"
+    created: "2026-01-02T02:31:00.804313662Z"
     description: Feature service and multiple components
     digest: c45bfb864a675f2b4139d1f36486019b4762a3044b12587907b048d160fc1533
     name: feature
@@ -53,7 +63,7 @@ entries:
     version: 0.0.8
   - apiVersion: v2
     appVersion: 0.0.7
-    created: "2026-01-02T02:15:46.140572044Z"
+    created: "2026-01-02T02:31:00.803688099Z"
     description: Feature service and multiple components
     digest: 27639f1bacc7c10d29d3ecba589cc9657a334b26be332677c1e1b4551db12119
     name: feature
@@ -63,7 +73,7 @@ entries:
     version: 0.0.7
   - apiVersion: v2
     appVersion: 0.0.6
-    created: "2026-01-02T02:15:46.140030565Z"
+    created: "2026-01-02T02:31:00.802369178Z"
     description: Feature service and multiple components
     digest: 85b00d60633292e264cb52329ab1671c284f5cd0b69203287faeac5f71a107e2
     name: feature
@@ -73,7 +83,7 @@ entries:
     version: 0.0.6
   - apiVersion: v2
     appVersion: 0.0.5
-    created: "2026-01-02T02:15:46.139382687Z"
+    created: "2026-01-02T02:31:00.801774797Z"
     description: Feature service and multiple components
     digest: 450df2a72c2416f4908f5913c1c4a8d27b9e0eab0b6fd31080b79a8c2f69a50a
     name: feature
@@ -83,7 +93,7 @@ entries:
     version: 0.0.5
   - apiVersion: v2
     appVersion: 0.0.4
-    created: "2026-01-02T02:15:46.138779864Z"
+    created: "2026-01-02T02:31:00.800797067Z"
     description: Feature service and multiple components
     digest: 679ff90c519ee2e6bed50ddfbb5d1fa31062d032b3acfd07caecbb095475942f
     name: feature
@@ -91,4 +101,4 @@ entries:
     urls:
     - https://dkrizic.github.io/feature/feature-0.0.4.tgz
     version: 0.0.4
-generated: "2026-01-02T02:15:46.138051497Z"
+generated: "2026-01-02T02:31:00.800116205Z"
