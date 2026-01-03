@@ -124,7 +124,7 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 
 	key := r.FormValue("key")
 	if key == "" {
-		slog.Error("Missing key parameter")
+		slog.ErrorContext(ctx, "Missing key parameter")
 		http.Error(w, "Missing key parameter", http.StatusBadRequest)
 		span.SetStatus(codes.Error, "Missing key parameter")
 		return

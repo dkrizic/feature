@@ -41,7 +41,7 @@ func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreami
 		}
 		count++
 	}
-	slog.Info("GetAll completed", "count", count)
+	slog.InfoContext(ctx, "GetAll completed", "count", count)
 	return nil
 }
 
@@ -56,7 +56,7 @@ func (fs *FeatureService) PreSet(ctx context.Context, kv *featurev1.KeyValue) (*
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("PreSet completed", "key", kv.Key, "value", kv.Value)
+	slog.InfoContext(ctx, "PreSet completed", "key", kv.Key, "value", kv.Value)
 	return &emptypb.Empty{}, nil
 }
 
@@ -71,7 +71,7 @@ func (fs *FeatureService) Set(ctx context.Context, kv *featurev1.KeyValue) (*emp
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("Set completed", "key", kv.Key, "value", kv.Value)
+	slog.InfoContext(ctx, "Set completed", "key", kv.Key, "value", kv.Value)
 	return &emptypb.Empty{}, nil
 }
 
@@ -83,7 +83,7 @@ func (fs *FeatureService) Get(ctx context.Context, kv *featurev1.Key) (*featurev
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("Get completed", "key", kv.Name, "value", result)
+	slog.InfoContext(ctx, "Get completed", "key", kv.Name, "value", result)
 	return &featurev1.Value{
 		Name: result.Value,
 	}, nil
@@ -97,6 +97,6 @@ func (fs *FeatureService) Delete(ctx context.Context, kv *featurev1.Key) (*empty
 	if err != nil {
 		return nil, err
 	}
-	slog.Info("Delete completed", "key", kv.Name)
+	slog.InfoContext(ctx, "Delete completed", "key", kv.Name)
 	return &emptypb.Empty{}, nil
 }
