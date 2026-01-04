@@ -10,6 +10,7 @@ import (
 	"github.com/dkrizic/feature/ui/constant"
 	"github.com/dkrizic/feature/ui/meta"
 	"github.com/dkrizic/feature/ui/service"
+	"github.com/dkrizic/feature/ui/telemetry/otelslog"
 	"github.com/urfave/cli/v3"
 )
 
@@ -126,7 +127,9 @@ func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error
 		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
 
-	logger := slog.New(handler)
+	otelhttp := otelslog.NewHandler(handler)
+
+	logger := slog.New(otelhttp)
 	slog.SetDefault(logger)
 
 	return ctx, nil
