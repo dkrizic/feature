@@ -11,10 +11,13 @@ Related components:
 
 ```mermaid
 graph TD
-    UI[User Interface]
     CLI[Command Line Interface]
     APP1[Application 1]
     APP2[Application 2]
+    subgraph FR[Frontend]
+      BR[Browser]
+      FS[Frontend Service]
+    end
     subgraph S[Service]
         API[gRPC API]
         P[Persistence]
@@ -22,11 +25,12 @@ graph TD
         CM[ConfigMap]
         API-->P
         P-->INM
-        P-->CM
+        P-->|REST|CM
     end
-    UI-->API
-    CLI-->API
-    APP1-->API
+    BR-->|REST|FS
+    FS-->|gRPC|API
+    CLI-->|gRPC|API
+    APP1-->|gRPC|API
     APP2-->|Mount|CM
 ```
 

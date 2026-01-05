@@ -3,11 +3,14 @@ package configmap
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/dkrizic/feature/service/service/persistence"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,6 +172,20 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 	rc, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Instrument the transport with otelhttp and set peer.service to "kubernetes"
+	rc.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return otelhttp.NewTransport(rt,
+			otelhttp.WithSpanOptions(
+				trace.WithAttributes(
+					attribute.String("peer.service", "kubernetes"),
+					attribute.String("namespace", *namespace),
+					attribute.String("configmap", configMapName),
+
+				),
+			),
+		)
 	}
 
 	// use Kubernetes API to load ConfigMap
