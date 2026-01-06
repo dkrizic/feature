@@ -184,6 +184,7 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 	rc.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return otelhttp.NewTransport(rt,
 			otelhttp.WithSpanOptions(
+				trace.WithSpanKind(trace.SpanKindClient),
 				trace.WithAttributes(
 					attribute.String("peer.service", "kubernetes"),
 					attribute.String("namespace", *namespace),
