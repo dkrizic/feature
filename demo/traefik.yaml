@@ -1,0 +1,20 @@
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  docker:
+    exposedByDefault: false
+
+log:
+  level: "DEBUG"
+  format: "json"
+
+accessLog:
+  format: "json"
+
+# Tracing exporter details (endpoint, protocol, insecure) are configured via
+# CLI flags in docker-compose.yaml. Keep only the service name here.
+tracing:
+  serviceName: "feature-traefik"
+

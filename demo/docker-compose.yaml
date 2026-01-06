@@ -19,18 +19,30 @@ services:
       - "80:80"
     command:
       - --api.insecure=true
+      - --api.dashboard=true
       - --providers.docker=true
       - --entrypoints.web.address=:80
-      - --providers.docker.exposedbydefault=false
-      - --tracing.serviceName=feature-traefik
+      - --ping=true
+      - --metrics.addinternals
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=metrics
+      - --metrics.otlp=true
+      - --metrics.otlp.grpc=true
+      - --metrics.otlp.grpc.endpoint=otel-collector:4317
+      - --metrics.otlp.grpc.insecure=true
+      - --metrics.otlp.addRoutersLabels=true
+      - --metrics.otlp.pushInterval=60s
+      - --tracing.sampleRate=1
       - --tracing.otlp=true
       - --tracing.otlp.grpc=true
-      - --tracing.otlp.grpc.insecure=true
       - --tracing.otlp.grpc.endpoint=otel-collector:4317
+      - --tracing.otlp.grpc.insecure=true
       - --log.format=json
-      - --log.level=DEBUG
+      - --log.level=INFO
       - --accesslog=true
       - --accesslog.format=json
+      - --accesslog.fields.defaultmode=keep
+      - --accesslog.fields.headers.defaultmode=drop
     depends_on:
       - ui
       - otel-collector
