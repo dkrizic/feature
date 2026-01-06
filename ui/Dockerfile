@@ -13,6 +13,11 @@ RUN go test ./...
 
 FROM scratch
 COPY --from=builder /app/feature-ui /app/feature-ui
+
+ENV LOG_FORMAT=json
+ENV LOG_LEVEL=info
+ENV PORT=8000
+
 EXPOSE 8000
 ENTRYPOINT ["/app/feature-ui"]
 CMD ["service"]

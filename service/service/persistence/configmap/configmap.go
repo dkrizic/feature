@@ -182,7 +182,6 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 					attribute.String("peer.service", "kubernetes"),
 					attribute.String("namespace", *namespace),
 					attribute.String("configmap", configMapName),
-
 				),
 			),
 		)

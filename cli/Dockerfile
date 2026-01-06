@@ -16,5 +16,4 @@ COPY --from=builder /app/feature-cli /app/feature-cli
 ENV PATH="/app:${PATH}"
 RUN ln -s /app/feature-cli /app/cli
 RUN ln -s /app/feature-cli /app/feature
-EXPOSE 8000
 ENTRYPOINT ["sh", "-c", "trap : TERM INT; sleep infinity & wait"]
