@@ -7,10 +7,13 @@ services:
       - --api.insecure=true
       - --providers.docker=true
       - --entrypoints.web.address=:80
+      - --providers.docker.exposedbydefault=false
+      - --tracing.serviceName="feature-traefik"
       - --tracing.otlp=true
       - --tracing.otlp.grpc=true
       - --tracing.otlp.grpc.insecure=true
-      - --tracing.otlp.grpc.endpoint=dev-yasm.prodyna.com:4317
+      - --tracing.otlp.grpc.endpoint="dev-yasm.prodyna.com:4317"
+      - --log.format=json
     depends_on:
       - ui
     volumes:

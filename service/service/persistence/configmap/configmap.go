@@ -174,6 +174,12 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 		return nil, nil, err
 	}
 
+	// get own namespace BEFORE using it in WrapTransport
+	namespace, err = ownNamespaceFn(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// Instrument the transport with otelhttp and set peer.service to "kubernetes"
 	rc.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return otelhttp.NewTransport(rt,
@@ -189,12 +195,6 @@ func k8sClient(ctx context.Context, configMapName string) (client configMapClien
 
 	// use Kubernetes API to load ConfigMap
 	clientset, err := kubernetes.NewForConfig(rc)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// get own namespace
-	namespace, err = ownNamespaceFn(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
