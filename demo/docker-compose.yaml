@@ -1,4 +1,16 @@
 services:
+  otel-collector:
+    image: otel/opentelemetry-collector:0.143.0
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    ports:
+      - 1888:1888 # pprof extension
+      - 8888:8888 # Prometheus metrics exposed by the Collector
+      - 8889:8889 # Prometheus exporter metrics
+      - 13133:13133 # health_check extension
+      - 4317:4317 # OTLP gRPC receiver
+      - 4318:4318 # OTLP http receiver
+      - 55679:55679 # zpages extension
   traefik:
     image: traefik:v3.6.5
     ports:
@@ -12,7 +24,7 @@ services:
       - --tracing.otlp=true
       - --tracing.otlp.grpc=true
       - --tracing.otlp.grpc.insecure=true
-      - --tracing.otlp.grpc.endpoint="dev-yasm.prodyna.com:4317"
+      - --tracing.otlp.grpc.endpoint="otel-collector:4317"
       - --log.format=json
     depends_on:
       - ui
@@ -31,7 +43,7 @@ services:
       - PRESET=COLOR=red,THEME=dark,BOOKING=true
       - STORAGE_TYPE=inmemory
       - ENABLE_OPENTELEMETRY=true
-      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+      - OTLP_ENDPOINT=otel-collector:4317
   ui:
     image: ghcr.io/dkrizic/feature-ui:latest
     pull_policy: always
@@ -44,7 +56,7 @@ services:
       - LOG_LEVEL=debug
       - LOG_FORMAT=json
       - ENABLE_OPENTELEMETRY=true
-      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+      - OTLP_ENDPOINT=otel-collector:4317
     depends_on:
       - service
     labels:
@@ -60,6 +72,6 @@ services:
       - LOG_FORMAT=json
       - ENDPOINT=service:8000
       - ENABLE_OPENTELEMETRY=true
-      - OTLP_ENDPOINT=dev-yasm.prodyna.com:4317
+      - OTLP_ENDPOINT=otel-collector:4317
     depends_on:
       - service
