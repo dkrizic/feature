@@ -19,6 +19,17 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  filelog/docker:
+    include:
+      - /var/lib/docker/containers/*/*.log
+    start_at: beginning
+    operators:
+      - type: json_parser
+        parse_from: body
+        on_error: send
+      - type: move
+        from: body
+        to: attributes.body
 
   hostmetrics:
     # Optional. Host Metrics Receiver added as an example of Infra Monitoring capabilities of the OpenTelemetry Collector
@@ -30,58 +41,6 @@ receivers:
 processors:
   batch:
   # https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor/batchprocessor
-  resourcedetection:
-    # Enriches telemetry data with resource information from the host
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/resourcedetectionprocessor
-    detectors: ["env", "system"]
-    override: false
-  transform/drop_unneeded_resource_attributes:
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
-    error_mode: ignore
-    trace_statements:
-      - context: resource
-        statements:
-          - delete_key(attributes, "k8s.pod.start_time")
-          - delete_key(attributes, "os.description")
-          - delete_key(attributes, "os.type")
-          - delete_key(attributes, "process.command_args")
-          - delete_key(attributes, "process.executable.path")
-          - delete_key(attributes, "process.pid")
-          - delete_key(attributes, "process.runtime.description")
-          - delete_key(attributes, "process.runtime.name")
-          - delete_key(attributes, "process.runtime.version")
-    metric_statements:
-      - context: resource
-        statements:
-          - delete_key(attributes, "k8s.pod.start_time")
-          - delete_key(attributes, "os.description")
-          - delete_key(attributes, "os.type")
-          - delete_key(attributes, "process.command_args")
-          - delete_key(attributes, "process.executable.path")
-          - delete_key(attributes, "process.pid")
-          - delete_key(attributes, "process.runtime.description")
-          - delete_key(attributes, "process.runtime.name")
-          - delete_key(attributes, "process.runtime.version")
-    log_statements:
-      - context: resource
-        statements:
-          - delete_key(attributes, "k8s.pod.start_time")
-          - delete_key(attributes, "os.description")
-          - delete_key(attributes, "os.type")
-          - delete_key(attributes, "process.command_args")
-          - delete_key(attributes, "process.executable.path")
-          - delete_key(attributes, "process.pid")
-          - delete_key(attributes, "process.runtime.description")
-          - delete_key(attributes, "process.runtime.name")
-          - delete_key(attributes, "process.runtime.version")
-  transform/add_resource_attributes_as_metric_attributes:
-    # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
-    error_mode: ignore
-    metric_statements:
-      - context: datapoint
-        statements:
-          - set(attributes["deployment.environment"], resource.attributes["deployment.environment"])
-          - set(attributes["service.version"], resource.attributes["service.version"])
 
 exporters:
   otlphttp/grafana_cloud:
@@ -102,6 +61,6 @@ service:
       processors: [batch]
       exporters: [otlphttp/grafana_cloud]
     logs:
-      receivers: [otlp]
+      receivers: [otlp, filelog/docker]
       processors: [batch]
       exporters: [otlphttp/grafana_cloud]
