@@ -1,8 +1,9 @@
 services:
   otel-collector:
-    image: otel/opentelemetry-collector:0.143.0
+    image: otel/opentelemetry-collector-contrib:0.143.0
+    command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml
     ports:
       - 1888:1888 # pprof extension
       - 8888:8888 # Prometheus metrics exposed by the Collector
@@ -20,11 +21,11 @@ services:
       - --providers.docker=true
       - --entrypoints.web.address=:80
       - --providers.docker.exposedbydefault=false
-      - --tracing.serviceName="feature-traefik"
+      - --tracing.serviceName=feature-traefik
       - --tracing.otlp=true
       - --tracing.otlp.grpc=true
       - --tracing.otlp.grpc.insecure=true
-      - --tracing.otlp.grpc.endpoint="otel-collector:4317"
+      - --tracing.otlp.grpc.endpoint=otel-collector:4317
       - --log.format=json
     depends_on:
       - ui
