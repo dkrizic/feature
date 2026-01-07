@@ -14,12 +14,15 @@ Then open [http://localhost:80](http://localhost:80) in your browser.```
 graph TD
     style OC fill:lightgreen
     style GC fill:lightblue
+    style APP fill:lightyellow
     U[User]
     subgraph DC[Docker Compose Network]
     T[Traefik]
-    F[Frontend]
-    CLI[CLI]
-    S[Service]
+    subgraph APP[Application]
+        F[Frontend]
+        CLI[CLI]
+        S[Service]
+    end
     subgraph OC[OpenTelemetry Collector]
       GRPC[gRPC Receiver]
       PIPE[Processing Pipeline]
