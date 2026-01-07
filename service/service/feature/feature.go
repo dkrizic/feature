@@ -6,6 +6,7 @@ import (
 
 	"github.com/dkrizic/feature/service/service/feature/v1"
 	"github.com/dkrizic/feature/service/service/persistence"
+	"github.com/dkrizic/feature/service/telemetry/localmetrics"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,10 +17,14 @@ type FeatureService struct {
 	persistence persistence.Persistence
 }
 
-func NewFeatureService(p persistence.Persistence) *FeatureService {
+func NewFeatureService(p persistence.Persistence) (*FeatureService, error) {
+	err := localmetrics.New()
+	if err != nil {
+		slog.Error("Failed to initialize local metrics", "error", err)
+	}
 	return &FeatureService{
 		persistence: p,
-	}
+	}, nil
 }
 
 func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreamingServer[featurev1.KeyValue]) error {
@@ -30,7 +35,6 @@ func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreami
 	if err != nil {
 		return err
 	}
-	count := 0
 	for _, kv := range values {
 		err := stream.Send(&featurev1.KeyValue{
 			Key:   kv.Key,
@@ -39,8 +43,11 @@ func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreami
 		if err != nil {
 			return err
 		}
-		count++
 	}
+	count := len(values)
+	localmetrics.ActiveGauge().Record(ctx, int64(count))
+	localmetrics.GetAllCounter().Add(ctx, 1)
+
 	slog.InfoContext(ctx, "GetAll completed", "count", count)
 	return nil
 }
@@ -57,6 +64,12 @@ func (fs *FeatureService) PreSet(ctx context.Context, kv *featurev1.KeyValue) (*
 		return nil, err
 	}
 	slog.InfoContext(ctx, "PreSet completed", "key", kv.Key, "value", kv.Value)
+	count, err := fs.persistence.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	localmetrics.ActiveGauge().Record(ctx, int64(count))
+	localmetrics.PresetCounter().Add(ctx, 1)
 	return &emptypb.Empty{}, nil
 }
 
@@ -72,6 +85,12 @@ func (fs *FeatureService) Set(ctx context.Context, kv *featurev1.KeyValue) (*emp
 		return nil, err
 	}
 	slog.InfoContext(ctx, "Set completed", "key", kv.Key, "value", kv.Value)
+	count, err := fs.persistence.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	localmetrics.ActiveGauge().Record(ctx, int64(count))
+	localmetrics.SetCounter().Add(ctx, 1)
 	return &emptypb.Empty{}, nil
 }
 
@@ -84,6 +103,12 @@ func (fs *FeatureService) Get(ctx context.Context, kv *featurev1.Key) (*featurev
 		return nil, err
 	}
 	slog.InfoContext(ctx, "Get completed", "key", kv.Name, "value", result)
+	count, err := fs.persistence.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	localmetrics.ActiveGauge().Record(ctx, int64(count))
+	localmetrics.GetCounter().Add(ctx, 1)
 	return &featurev1.Value{
 		Name: result.Value,
 	}, nil
@@ -98,5 +123,11 @@ func (fs *FeatureService) Delete(ctx context.Context, kv *featurev1.Key) (*empty
 		return nil, err
 	}
 	slog.InfoContext(ctx, "Delete completed", "key", kv.Name)
+	count, err := fs.persistence.Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	localmetrics.ActiveGauge().Record(ctx, int64(count))
+	localmetrics.DeleteCounter().Add(ctx, 1)
 	return &emptypb.Empty{}, nil
 }

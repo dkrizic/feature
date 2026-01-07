@@ -232,3 +232,15 @@ func ownNamespace(ctx context.Context) (namespace *string, err error) {
 	span.SetAttributes(attribute.String("namespace", ns))
 	return &ns, nil
 }
+
+func (p *Persistence) Count(ctx context.Context) (int, error) {
+	ctx, span := otel.Tracer("service/persistence/configmap").Start(ctx, "Count")
+	defer span.End()
+
+	configMap, err := p.createOrLoadConfigMap(ctx)
+	if err != nil {
+		return 0, err
+	}
+	count := len(configMap.Data)
+	return count, nil
+}

@@ -1,5 +1,5 @@
-// Package otelslog provides an [slog.Handler] that attaches OpenTelemetry trace details to logs.
-package otelslog
+// Package injectctx provides an [slog.Handler] that attaches OpenTelemetry trace details to logs.
+package injectctx
 
 import (
 	"context"
@@ -41,7 +41,7 @@ type Handler struct {
 // Handle implements [slog.Handler].
 func (h Handler) Handle(ctx context.Context, record slog.Record) error {
 	if h.Handler == nil {
-		return errors.New("otelslog: handler is missing")
+		return errors.New("injectctx: handler is missing")
 	}
 
 	spanContext := trace.SpanContextFromContext(ctx)

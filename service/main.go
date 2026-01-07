@@ -10,7 +10,7 @@ import (
 	"github.com/dkrizic/feature/service/constant"
 	"github.com/dkrizic/feature/service/meta"
 	"github.com/dkrizic/feature/service/service"
-	"github.com/dkrizic/feature/service/telemetry/otelslog"
+	"github.com/dkrizic/feature/service/telemetry/injectctx"
 	"github.com/urfave/cli/v3" // imports as package "cli"
 )
 
@@ -147,7 +147,7 @@ func beforeAction(ctx context.Context, cmd *cli.Command) (context.Context, error
 		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level})
 	}
 
-	otelhandler := otelslog.NewHandler(handler)
+	otelhandler := injectctx.NewHandler(handler)
 
 	logger := slog.New(otelhandler)
 	slog.SetDefault(logger)

@@ -8,9 +8,11 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/exemplar"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -68,7 +70,14 @@ func (config OpenTelemetryConfig) InitOpenTelemetry(ctx context.Context) (shutdo
 		return
 	}
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
-	// ✅ Set global MeterProvider before starting runtime metrics
+
+	// --- Logs ---
+	loggerProvider, err := newLoggerProvider(res, config.OTLPEndpoint)
+	if err != nil {
+		handleErr(err)
+		return
+	}
+	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
 
 	return shutdown, nil
 }
@@ -88,12 +97,12 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-// --- Modern TraceProvider ---
+// --- TraceProvider ---
 func newTraceProvider(res *resource.Resource, url string) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(
 		context.Background(),
 		otlptracegrpc.WithEndpoint(url),
-		otlptracegrpc.WithInsecure(), // replace with TLS if needed
+		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create trace exporter: %w", err)
@@ -109,12 +118,12 @@ func newTraceProvider(res *resource.Resource, url string) (*trace.TracerProvider
 	return traceProvider, nil
 }
 
-// --- Modern MeterProvider with runtime metrics ---
+// --- MeterProvider with runtime metrics ---
 func newMeterProvider(res *resource.Resource, url string) (*sdkmetric.MeterProvider, error) {
 	metricExporter, err := otlpmetricgrpc.New(
 		context.Background(),
 		otlpmetricgrpc.WithEndpoint(url),
-		otlpmetricgrpc.WithInsecure(), // replace with TLS if needed
+		otlpmetricgrpc.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create metric exporter: %w", err)
@@ -123,15 +132,16 @@ func newMeterProvider(res *resource.Resource, url string) (*sdkmetric.MeterProvi
 	meterProvider := sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(res),
 		sdkmetric.WithReader(
-			sdkmetric.NewPeriodicReader(metricExporter,
-				sdkmetric.WithInterval(60*time.Second), // push interval
+			sdkmetric.NewPeriodicReader(
+				metricExporter,
+				sdkmetric.WithInterval(60*time.Second),
 			),
 		),
 		sdkmetric.WithExemplarFilter(exemplar.TraceBasedFilter),
 	)
 
 	otel.SetMeterProvider(meterProvider)
-	// ✅ Attach runtime metrics to this MeterProvider
+
 	if err := runtime.Start(
 		runtime.WithMeterProvider(meterProvider),
 		runtime.WithMinimumReadMemStatsInterval(30*time.Second),
@@ -140,4 +150,29 @@ func newMeterProvider(res *resource.Resource, url string) (*sdkmetric.MeterProvi
 	}
 
 	return meterProvider, nil
+}
+
+// --- LoggerProvider for OTLP logs ---
+func newLoggerProvider(res *resource.Resource, url string) (*sdklog.LoggerProvider, error) {
+	logExporter, err := otlploggrpc.New(
+		context.Background(),
+		otlploggrpc.WithEndpoint(url),
+		otlploggrpc.WithInsecure(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create log exporter: %w", err)
+	}
+
+	loggerProvider := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(
+			sdklog.NewBatchProcessor(
+				logExporter,
+				sdklog.WithMaxQueueSize(2048),
+				sdklog.WithExportTimeout(5*time.Second),
+			),
+		),
+	)
+
+	return loggerProvider, nil
 }

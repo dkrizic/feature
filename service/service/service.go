@@ -148,7 +148,12 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
 	// feature
-	featurev1.RegisterFeatureServer(grpcServer, feature.NewFeatureService(pers))
+	featureService, err := feature.NewFeatureService(pers)
+	if err != nil {
+		slog.Error("Failed to create feature service", "error", err)
+		return fmt.Errorf("failed to create feature service: %w", err)
+	}
+	featurev1.RegisterFeatureServer(grpcServer, featureService)
 
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT

@@ -71,3 +71,12 @@ func (p *Persistence) Delete(ctx context.Context, key string) error {
 	slog.DebugContext(ctx, "Deleting", "key", key)
 	return nil
 }
+
+func (p *Persistence) Count(ctx context.Context) (int, error) {
+	ctx, span := otel.Tracer("service/persistence/inmemory").Start(ctx, "Count")
+	defer span.End()
+
+	count := len(p.data)
+	slog.DebugContext(ctx, "Counting", "count", count)
+	return count, nil
+}
