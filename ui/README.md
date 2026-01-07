@@ -163,7 +163,7 @@ The UI service uses a custom `slog.Handler` wrapper (`telemetry/injectctx`) that
 Example JSON log output with trace context:
 ```json
 {
-  "time": "2024-01-07T10:30:00Z",
+  "time": "2026-01-07T10:30:00Z",
   "level": "INFO",
   "msg": "Fetching all features from backend",
   "ctx": {
