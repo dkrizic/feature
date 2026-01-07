@@ -54,9 +54,14 @@ Prints the version number of the feature UI service.
 feature-ui version
 ```
 
-**Example Output:**
+**Example Output (text format):**
 ```
-Feature Service name=feature-ui version=v1.0.0
+time=2026-01-07T10:30:00.000Z level=INFO msg="Feature Service" name=feature-ui version=v1.0.0
+```
+
+**Example Output (JSON format):**
+```json
+{"time":"2026-01-07T10:30:00.000Z","level":"INFO","msg":"Feature Service","name":"feature-ui","version":"v1.0.0"}
 ```
 
 #### `service`
@@ -463,12 +468,15 @@ make build
 # Or build manually with a specific version
 docker build -t feature-ui:v1.0.0 --build-arg VERSION=v1.0.0 .
 
-# Run the container
+# Run the container (maps container port 8000 to host port 8080)
 docker run -p 8080:8000 \
   -e ENDPOINT=backend:8000 \
   -e LOG_FORMAT=json \
   -e LOG_LEVEL=info \
   feature-ui:v1.0.0 service
+
+# Note: The Dockerfile sets ENV PORT=8000 and EXPOSE 8000 by default
+# To run on a different container port, override with -e PORT=8080
 ```
 
 **Dockerfile Highlights:**
