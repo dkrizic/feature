@@ -26,7 +26,7 @@ func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST /features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
 	mux.HandleFunc("POST /features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
 	mux.HandleFunc("POST /features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
-	mux.HandleFunc("GET /healthz", s.handleHealth)
+	mux.HandleFunc("GET /health", s.handleHealth)
 }
 
 // handleIndex renders the full HTML page with HTMX.
