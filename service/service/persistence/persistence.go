@@ -13,6 +13,7 @@ type Persistence interface {
 	Set(context.Context, KeyValue) error
 	Get(context.Context, string) (KeyValue, error)
 	Delete(context.Context, string) error
+	Count(context.Context) (int, error)
 }
 
 // errors
