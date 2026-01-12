@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   feature:
   - apiVersion: v2
+    appVersion: 0.2.2
+    created: "2026-01-12T01:50:54.461085153Z"
+    description: Feature service and multiple components
+    digest: fdb875ecfa8ce8b49f91602d1b4a3bd4c81811751d67a3b8abbe3ce660961155
+    name: feature
+    type: application
+    urls:
+    - https://dkrizic.github.io/feature/feature-0.2.2.tgz
+    version: 0.2.2
+  - apiVersion: v2
     appVersion: 0.2.1
-    created: "2026-01-07T01:05:55.409698405Z"
+    created: "2026-01-12T01:50:54.460501998Z"
     description: Feature service and multiple components
     digest: f190dbf23445085d1622cd6fe4a3a0236ede12ff6985dfafcb73dc28a065cf8d
     name: feature
@@ -13,7 +23,7 @@ entries:
     version: 0.2.1
   - apiVersion: v2
     appVersion: 0.2.0
-    created: "2026-01-07T01:05:55.409079327Z"
+    created: "2026-01-12T01:50:54.459852669Z"
     description: Feature service and multiple components
     digest: 18dea6e4ba41fe36878baae7e62c11a7588eb25e41127c8b522a5729d7c60d25
     name: feature
@@ -23,7 +33,7 @@ entries:
     version: 0.2.0
   - apiVersion: v2
     appVersion: 0.1.9
-    created: "2026-01-07T01:05:55.408488841Z"
+    created: "2026-01-12T01:50:54.458871032Z"
     description: Feature service and multiple components
     digest: 3ddaa1fbddac27f158649537f348fb5818b75ddd4ea9c3b7b4cfe8454f28520b
     name: feature
@@ -33,7 +43,7 @@ entries:
     version: 0.1.9
   - apiVersion: v2
     appVersion: 0.1.8
-    created: "2026-01-07T01:05:55.407881038Z"
+    created: "2026-01-12T01:50:54.457931313Z"
     description: Feature service and multiple components
     digest: 72cc5f78b8051f03a03e7080bfd6551d848032de3dbd85e668aa07a97c6f27a1
     name: feature
@@ -43,7 +53,7 @@ entries:
     version: 0.1.8
   - apiVersion: v2
     appVersion: 0.1.7
-    created: "2026-01-07T01:05:55.407287238Z"
+    created: "2026-01-12T01:50:54.457323472Z"
     description: Feature service and multiple components
     digest: 116372277805816f856707e48356492d2cbd9705f281119c11856298e9f9202e
     name: feature
@@ -53,7 +63,7 @@ entries:
     version: 0.1.7
   - apiVersion: v2
     appVersion: 0.1.6
-    created: "2026-01-07T01:05:55.406702354Z"
+    created: "2026-01-12T01:50:54.456708577Z"
     description: Feature service and multiple components
     digest: c89a39e29d86f584e67c0725ef65e3752963a627d16f110ce6e44a58e0718205
     name: feature
@@ -63,7 +73,7 @@ entries:
     version: 0.1.6
   - apiVersion: v2
     appVersion: 0.1.5
-    created: "2026-01-07T01:05:55.406139555Z"
+    created: "2026-01-12T01:50:54.45609223Z"
     description: Feature service and multiple components
     digest: 3d0c8494114c74b24d0cbcbfe84145c2e44070b45f4abfefd0e9b4272b79cad5
     name: feature
@@ -73,7 +83,7 @@ entries:
     version: 0.1.5
   - apiVersion: v2
     appVersion: 0.1.4
-    created: "2026-01-07T01:05:55.405561939Z"
+    created: "2026-01-12T01:50:54.455458882Z"
     description: Feature service and multiple components
     digest: 40ff42291676cf499014b4286f09df0a702289f532d6c868f5b27483f0d79f47
     name: feature
@@ -83,7 +93,7 @@ entries:
     version: 0.1.4
   - apiVersion: v2
     appVersion: 0.1.3
-    created: "2026-01-07T01:05:55.404952809Z"
+    created: "2026-01-12T01:50:54.454797791Z"
     description: Feature service and multiple components
     digest: 05028a48f8cbc449f0ddaa6a9103bd9e9d6820b64fa447d21704e6badec7378d
     name: feature
@@ -93,7 +103,7 @@ entries:
     version: 0.1.3
   - apiVersion: v2
     appVersion: 0.1.2
-    created: "2026-01-07T01:05:55.404340357Z"
+    created: "2026-01-12T01:50:54.454287672Z"
     description: Feature service and multiple components
     digest: 936b764a1b7602e76306c610e2b28f52bf1fb73c830522db7b623d6e57e4e0ef
     name: feature
@@ -103,7 +113,7 @@ entries:
     version: 0.1.2
   - apiVersion: v2
     appVersion: 0.1.1
-    created: "2026-01-07T01:05:55.403074606Z"
+    created: "2026-01-12T01:50:54.453672747Z"
     description: Feature service and multiple components
     digest: b1523bfa80970d66718aba048156e0bd50ac2528a5929776243cfeedf955c023
     name: feature
@@ -113,7 +123,7 @@ entries:
     version: 0.1.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-01-07T01:05:55.402287186Z"
+    created: "2026-01-12T01:50:54.453044588Z"
     description: Feature service and multiple components
     digest: ce83927bc41e62f5d795a2a839602252821a1d82e76ff96d044a2007a15161d4
     name: feature
@@ -123,7 +133,7 @@ entries:
     version: 0.1.0
   - apiVersion: v2
     appVersion: 0.0.9
-    created: "2026-01-07T01:05:55.401755843Z"
+    created: "2026-01-12T01:50:54.452445273Z"
     description: Feature service and multiple components
     digest: c5345c139219f07adc5e4e916f7a25d4eeda37e6a2ab4bebf59895d6d170b83c
     name: feature
@@ -133,7 +143,7 @@ entries:
     version: 0.0.9
   - apiVersion: v2
     appVersion: 0.0.8
-    created: "2026-01-07T01:05:55.401240783Z"
+    created: "2026-01-12T01:50:54.451125399Z"
     description: Feature service and multiple components
     digest: c45bfb864a675f2b4139d1f36486019b4762a3044b12587907b048d160fc1533
     name: feature
@@ -143,7 +153,7 @@ entries:
     version: 0.0.8
   - apiVersion: v2
     appVersion: 0.0.7
-    created: "2026-01-07T01:05:55.400713327Z"
+    created: "2026-01-12T01:50:54.450547534Z"
     description: Feature service and multiple components
     digest: 27639f1bacc7c10d29d3ecba589cc9657a334b26be332677c1e1b4551db12119
     name: feature
@@ -153,7 +163,7 @@ entries:
     version: 0.0.7
   - apiVersion: v2
     appVersion: 0.0.6
-    created: "2026-01-07T01:05:55.400204069Z"
+    created: "2026-01-12T01:50:54.449906951Z"
     description: Feature service and multiple components
     digest: 85b00d60633292e264cb52329ab1671c284f5cd0b69203287faeac5f71a107e2
     name: feature
@@ -163,7 +173,7 @@ entries:
     version: 0.0.6
   - apiVersion: v2
     appVersion: 0.0.5
-    created: "2026-01-07T01:05:55.399610959Z"
+    created: "2026-01-12T01:50:54.449348342Z"
     description: Feature service and multiple components
     digest: 450df2a72c2416f4908f5913c1c4a8d27b9e0eab0b6fd31080b79a8c2f69a50a
     name: feature
@@ -173,7 +183,7 @@ entries:
     version: 0.0.5
   - apiVersion: v2
     appVersion: 0.0.4
-    created: "2026-01-07T01:05:55.399024913Z"
+    created: "2026-01-12T01:50:54.448582747Z"
     description: Feature service and multiple components
     digest: 679ff90c519ee2e6bed50ddfbb5d1fa31062d032b3acfd07caecbb095475942f
     name: feature
@@ -181,4 +191,4 @@ entries:
     urls:
     - https://dkrizic.github.io/feature/feature-0.0.4.tgz
     version: 0.0.4
-generated: "2026-01-07T01:05:55.398282645Z"
+generated: "2026-01-12T01:50:54.447856886Z"
