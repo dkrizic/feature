@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/dkrizic/feature/cli/command/delete"
 	"github.com/dkrizic/feature/cli/command/get"
@@ -204,13 +205,24 @@ func before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 
 func after(ctx context.Context, cmd *cli.Command) error {
 	if otelShutdown != nil {
-		slog.InfoContext(ctx, "Shutting down OpenTelemetry")
-		err := otelShutdown(ctx)
-		if err != nil {
-			slog.Error("Failed to shut down OpenTelemetry", "error", err)
-			return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
+		// Use a bounded context so we give OTEL some time to flush, but never hang indefinitely
+		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+
+		slog.InfoContext(shutdownCtx, "Shutting down OpenTelemetry")
+		if err := otelShutdown(shutdownCtx); err != nil {
+			// If we hit a timeout, log it but don't fail the CLI; otherwise propagate the error
+			if shutdownCtx.Err() == context.DeadlineExceeded {
+				slog.ErrorContext(shutdownCtx, "Timed out while shutting down OpenTelemetry", "error", err)
+			} else {
+				slog.ErrorContext(shutdownCtx, "Failed to shut down OpenTelemetry", "error", err)
+				return fmt.Errorf("failed to shut down OpenTelemetry: %w", err)
+			}
+		} else {
+			slog.InfoContext(shutdownCtx, "OpenTelemetry shutdown completed")
 		}
 	}
+
 	slog.Info("Shutting down service", "version", metaversion.Version)
 	return nil
 }
