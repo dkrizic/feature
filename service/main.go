@@ -112,6 +112,46 @@ func main() {
 						Usage:   "Pre-set key-value pairs in the format key=value before starting the service",
 						Sources: cli.EnvVars("PRESET"),
 					},
+					&cli.BoolFlag{
+						Name:    constant.NotificationEnabled,
+						Usage:   "Enable notifications for feature changes",
+						Value:   false,
+						Sources: cli.EnvVars("NOTIFICATION_ENABLED"),
+					},
+					&cli.StringFlag{
+						Name:    constant.NotificationType,
+						Usage:   "Type of notification to use: log, redis_topic",
+						Value:   constant.NotificationTypeLog,
+						Sources: cli.EnvVars("NOTIFICATION_TYPE"),
+						Action: func(ctx context.Context, cmd *cli.Command, s string) error {
+							if s != constant.NotificationTypeLog && s != constant.NotificationTypeRedisTopic {
+								return fmt.Errorf("invalid notification type: %s", s)
+							}
+							// if notification type is redis_topic, redis endpoint and redis topic must be set
+							if s == constant.NotificationTypeRedisTopic {
+								redisEndpoint := cmd.String(constant.RedisEndpoint)
+								redisTopic := cmd.String(constant.RedisNotificationTopic)
+								if redisEndpoint == "" {
+									return fmt.Errorf("redis-endpoint cannot be empty when notification-type is redis_topic")
+								}
+								if redisTopic == "" {
+									return fmt.Errorf("redis-notification-topic cannot be empty when notification-type is redis_topic")
+								}
+							}
+							return nil
+						},
+					},
+					&cli.StringFlag{
+						Name:    constant.RedisEndpoint,
+						Usage:   "Redis endpoint for redis_topic notifications",
+						Sources: cli.EnvVars("REDIS_ENDPOINT"),
+					},
+					&cli.StringFlag{
+						Name:    constant.RedisNotificationTopic,
+						Usage:   "Redis topic for notifications",
+						Value:   "feature_notifications",
+						Sources: cli.EnvVars("REDIS_NOTIFICATION_TOPIC"),
+					},
 				},
 			},
 		},

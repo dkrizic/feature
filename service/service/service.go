@@ -37,8 +37,8 @@ var otelShutdown func(ctx context.Context) error = nil
 func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	slog.Info("Starting service", "version", metaversion.Version)
 
-	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
-	otelEndpoint := cmd.String(constant.OTLPEndpoint)
+	otelEnabled := cmd.Bool(constant.OpenTelemetryEnabled)
+	otelEndpoint := cmd.String(constant.OpenTelemetryEndpoint)
 
 	if otelEnabled {
 		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)
