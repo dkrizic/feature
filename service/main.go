@@ -71,14 +71,14 @@ func main() {
 						Sources:  cli.EnvVars("PORT"),
 					},
 					&cli.BoolFlag{
-						Name:     constant.EnableOpenTelemetry,
+						Name:     constant.OpenTelemetryEnabled,
 						Value:    false,
 						Category: "observability",
 						Usage:    "Enable OpenTelemetry tracing",
 						Sources:  cli.EnvVars("ENABLE_OPENTELEMETRY"),
 					},
 					&cli.StringFlag{
-						Name:     constant.OTLPEndpoint,
+						Name:     constant.OpenTelemetryEndpoint,
 						Value:    "",
 						Category: "observability",
 						Usage:    "OTLP endpoint for OpenTelemetry",
