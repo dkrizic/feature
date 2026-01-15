@@ -4,13 +4,13 @@ import (
 	"context"
 )
 
-type ActionType int
+type ActionType string
 
 const (
-	ActionUnknown ActionType = iota
-	ActionCreate
-	ActionUpdate
-	ActionDelete
+	ActionUnknown ActionType = "unknown"
+	ActionCreate  ActionType = "create"
+	ActionUpdate  ActionType = "update"
+	ActionDelete  ActionType = "delete"
 )
 
 type Action struct {
