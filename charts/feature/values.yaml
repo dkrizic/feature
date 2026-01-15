@@ -52,14 +52,7 @@ service:
     endpoint: ""
   notification:
     enabled: false
-<<<<<<< Updated upstream
-    type: log
-    redis:
-      endpoint: ""
-      topic: feature-updates
-=======
     type: ""
->>>>>>> Stashed changes
 
 cli:
   # Deploy the feature CLI
