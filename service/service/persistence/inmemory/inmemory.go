@@ -12,7 +12,7 @@ type Persistence struct {
 	data map[string]string
 }
 
-func NewPersistence() *Persistence {
+func NewInMemoryPersistence() *Persistence {
 	return &Persistence{
 		data: make(map[string]string),
 	}

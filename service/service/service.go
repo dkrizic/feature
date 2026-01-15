@@ -13,8 +13,7 @@ import (
 
 	"github.com/dkrizic/feature/service/constant"
 	"github.com/dkrizic/feature/service/service/persistence"
-	"github.com/dkrizic/feature/service/service/persistence/configmap"
-	"github.com/dkrizic/feature/service/service/persistence/inmemory"
+	"github.com/dkrizic/feature/service/service/persistence/factory"
 	"github.com/dkrizic/feature/service/telemetry"
 	"github.com/urfave/cli/v3"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -82,20 +81,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	slog.InfoContext(ctx, "Configuration", "port", port)
 
 	// configure persistence based on storage type
-	var pers persistence.Persistence
-	storageType := cmd.String(constant.StorageType)
-	switch storageType {
-	case constant.StorageTypeInMemory:
-		slog.Info("Using in-memory storage")
-		pers = inmemory.NewPersistence()
-	case constant.StorageTypeConfigMap:
-		configMapName := cmd.String(constant.ConfigMapName)
-		slog.InfoContext(ctx, "Using ConfigMap storage", "configMapName", configMapName)
-		pers = configmap.NewPersistence(configMapName)
-	default:
-		slog.ErrorContext(ctx, "Invalid storage type", "storageType", storageType)
-		return fmt.Errorf("invalid storage type: %s", storageType)
-	}
+	pers, err := factory.NewPersistence(ctx, cmd)
 
 	// check if there is a preset
 	preset := cmd.StringSlice(constant.PreSet)
