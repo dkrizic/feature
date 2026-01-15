@@ -12,7 +12,7 @@ import (
 
 func TestInMemoryPersistence(t *testing.T) {
 	ctx := context.Background()
-	p := NewPersistence()
+	p := NewInMemoryPersistence()
 
 	// Test PreSet
 	err := p.PreSet(ctx, persistence.KeyValue{Key: "key1", Value: "value1"})

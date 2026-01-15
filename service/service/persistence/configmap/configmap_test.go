@@ -74,9 +74,9 @@ func setupFakeK8s(namespace string) *fakeConfigMapClient {
 	return fakeClient
 }
 
-func TestNewPersistence(t *testing.T) {
+func TestNewConfigMapPersistence(t *testing.T) {
 	configMapName := "test-configmap"
-	p := NewPersistence(configMapName)
+	p := NewConfigMapPersistence(configMapName)
 
 	assert.NotNil(t, p)
 	assert.Equal(t, configMapName, p.configMapName)
@@ -85,7 +85,7 @@ func TestNewPersistence(t *testing.T) {
 func TestConfigMapPersistence_GetAll(t *testing.T) {
 	fakeClient := setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	
+
 	// Seed data
 	fakeClient.configMaps["test-configmap"] = &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -96,13 +96,13 @@ func TestConfigMapPersistence_GetAll(t *testing.T) {
 			"key2": "value2",
 		},
 	}
-	
-	p := NewPersistence("test-configmap")
+
+	p := NewConfigMapPersistence("test-configmap")
 	result, err := p.GetAll(ctx)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
-	
+
 	// Convert to map for easier assertion
 	resultMap := make(map[string]string)
 	for _, kv := range result {
@@ -115,8 +115,8 @@ func TestConfigMapPersistence_GetAll(t *testing.T) {
 func TestConfigMapPersistence_GetAll_Empty(t *testing.T) {
 	setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	
-	p := NewPersistence("test-configmap")
+
+	p := NewConfigMapPersistence("test-configmap")
 	result, err := p.GetAll(ctx)
 
 	assert.NoError(t, err)
@@ -126,22 +126,22 @@ func TestConfigMapPersistence_GetAll_Empty(t *testing.T) {
 func TestConfigMapPersistence_PreSet(t *testing.T) {
 	setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	p := NewPersistence("test-configmap")
+	p := NewConfigMapPersistence("test-configmap")
 
 	// PreSet should set the value when key doesn't exist
 	err := p.PreSet(ctx, persistence.KeyValue{Key: "key1", Value: "value1"})
 	assert.NoError(t, err)
-	
+
 	// Verify the value was set
 	kv, err := p.Get(ctx, "key1")
 	assert.NoError(t, err)
 	assert.Equal(t, "key1", kv.Key)
 	assert.Equal(t, "value1", kv.Value)
-	
+
 	// PreSet should not change the value when key already exists with different value
 	err = p.PreSet(ctx, persistence.KeyValue{Key: "key1", Value: "newvalue"})
 	assert.NoError(t, err)
-	
+
 	// Verify the value was NOT changed
 	kv, err = p.Get(ctx, "key1")
 	assert.NoError(t, err)
@@ -151,22 +151,22 @@ func TestConfigMapPersistence_PreSet(t *testing.T) {
 func TestConfigMapPersistence_Set(t *testing.T) {
 	setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	p := NewPersistence("test-configmap")
+	p := NewConfigMapPersistence("test-configmap")
 
 	// Set should set the value
 	err := p.Set(ctx, persistence.KeyValue{Key: "key1", Value: "value1"})
 	assert.NoError(t, err)
-	
+
 	// Verify the value was set
 	kv, err := p.Get(ctx, "key1")
 	assert.NoError(t, err)
 	assert.Equal(t, "key1", kv.Key)
 	assert.Equal(t, "value1", kv.Value)
-	
+
 	// Set should update the value when key already exists
 	err = p.Set(ctx, persistence.KeyValue{Key: "key1", Value: "newvalue"})
 	assert.NoError(t, err)
-	
+
 	// Verify the value was changed
 	kv, err = p.Get(ctx, "key1")
 	assert.NoError(t, err)
@@ -176,7 +176,7 @@ func TestConfigMapPersistence_Set(t *testing.T) {
 func TestConfigMapPersistence_Get(t *testing.T) {
 	fakeClient := setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	
+
 	// Seed data
 	fakeClient.configMaps["test-configmap"] = &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -186,8 +186,8 @@ func TestConfigMapPersistence_Get(t *testing.T) {
 			"key1": "value1",
 		},
 	}
-	
-	p := NewPersistence("test-configmap")
+
+	p := NewConfigMapPersistence("test-configmap")
 	result, err := p.Get(ctx, "key1")
 
 	assert.NoError(t, err)
@@ -198,7 +198,7 @@ func TestConfigMapPersistence_Get(t *testing.T) {
 func TestConfigMapPersistence_Get_NotFound(t *testing.T) {
 	fakeClient := setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	
+
 	// Seed data with empty ConfigMap
 	fakeClient.configMaps["test-configmap"] = &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -206,8 +206,8 @@ func TestConfigMapPersistence_Get_NotFound(t *testing.T) {
 		},
 		Data: map[string]string{},
 	}
-	
-	p := NewPersistence("test-configmap")
+
+	p := NewConfigMapPersistence("test-configmap")
 	result, err := p.Get(ctx, "nonexistent")
 
 	assert.Error(t, err)
@@ -219,7 +219,7 @@ func TestConfigMapPersistence_Get_NotFound(t *testing.T) {
 func TestConfigMapPersistence_Delete(t *testing.T) {
 	fakeClient := setupFakeK8s("test-namespace")
 	ctx := context.Background()
-	
+
 	// Seed data
 	fakeClient.configMaps["test-configmap"] = &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -230,20 +230,43 @@ func TestConfigMapPersistence_Delete(t *testing.T) {
 			"key2": "value2",
 		},
 	}
-	
-	p := NewPersistence("test-configmap")
-	
+
+	p := NewConfigMapPersistence("test-configmap")
+
 	// Delete a key
 	err := p.Delete(ctx, "key1")
 	assert.NoError(t, err)
-	
+
 	// Verify key was deleted
 	_, err = p.Get(ctx, "key1")
 	assert.Error(t, err)
 	assert.Equal(t, persistence.ErrKeyNotFound, err)
-	
+
 	// Verify other key still exists
 	kv, err := p.Get(ctx, "key2")
 	assert.NoError(t, err)
 	assert.Equal(t, "value2", kv.Value)
+}
+
+func TestConfigMapPersistence_Count(t *testing.T) {
+	fakeClient := setupFakeK8s("test-namespace")
+	ctx := context.Background()
+
+	// Seed data
+	fakeClient.configMaps["test-configmap"] = &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-configmap",
+		},
+		Data: map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+			"key3": "value3",
+		},
+	}
+
+	p := NewConfigMapPersistence("test-configmap")
+	count, err := p.Count(ctx)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 3, count)
 }
