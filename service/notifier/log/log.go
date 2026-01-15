@@ -4,9 +4,9 @@ package log
 
 import (
 	"context"
-	"log/slog"
 	"github.com/dkrizic/feature/service/notifier"
 	"go.opentelemetry.io/otel"
+	"log/slog"
 )
 
 type LogNotifier struct {
