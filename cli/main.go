@@ -63,14 +63,14 @@ func main() {
 				Sources:  cli.EnvVars("ENDPOINT"),
 			},
 			&cli.BoolFlag{
-				Name:     constant.EnableOpenTelemetry,
+				Name:     constant.OpenTelemetryEnabled,
 				Value:    false,
 				Category: "observability",
 				Usage:    "Enable OpenTelemetry tracing",
 				Sources:  cli.EnvVars("ENABLE_OPENTELEMETRY"),
 			},
 			&cli.StringFlag{
-				Name:     constant.OTLPEndpoint,
+				Name:     constant.OpenTelemetryEndpoint,
 				Value:    "",
 				Category: "observability",
 				Usage:    "OTLP endpoint for OpenTelemetry",
@@ -177,8 +177,8 @@ func before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	logger := slog.New(otelhttp)
 	slog.SetDefault(logger)
 
-	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
-	otelEndpoint := cmd.String(constant.OTLPEndpoint)
+	otelEnabled := cmd.Bool(constant.OpenTelemetryEnabled)
+	otelEndpoint := cmd.String(constant.OpenTelemetryEndpoint)
 
 	if otelEnabled {
 		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)

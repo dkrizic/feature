@@ -35,7 +35,7 @@ var (
 	ownNamespaceFn                                                                 = ownNamespace
 )
 
-func NewPersistence(configMapName string) *Persistence {
+func NewConfigMapPersistence(configMapName string) *Persistence {
 	return &Persistence{
 		configMapName: configMapName,
 	}

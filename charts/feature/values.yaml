@@ -50,6 +50,12 @@ service:
   opentelemetry:
     enabled: false
     endpoint: ""
+  notification:
+    enabled: false
+    type: log
+    redis:
+      endpoint: ""
+      topic: feature-updates
 
 cli:
   # Deploy the feature CLI
