@@ -13,4 +13,6 @@ data:
   PRESET: {{ .Values.service.preset | quote }}
   OPENTELEMETRY_ENABLED: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
   OPENTELEMETRY_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
+  NOTIFICATION_ENABLED: {{ ternary "true" "false" .Values.service.notification.enabled | quote }}
+  NOTIFICATION_TYPE: {{ .Values.service.notification.type | quote }}
 {{- end }}
