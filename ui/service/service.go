@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
 	address        string
+	subpath        string
 	templates      *template.Template
 	featureClient  featurev1.FeatureClient
 	metaClient     metav1.MetaClient
@@ -83,8 +85,17 @@ func After(ctx context.Context, cmd *cli.Command) error {
 func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
+	subpath := cmd.String(constant.Subpath)
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint)
+	// Normalize subpath: ensure it starts with / and doesn't end with /
+	if subpath != "" {
+		if !strings.HasPrefix(subpath, "/") {
+			subpath = "/" + subpath
+		}
+		subpath = strings.TrimSuffix(subpath, "/")
+	}
+
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath)
 
 	// Parse templates
 	templates := ParseTemplates(ctx)
@@ -122,6 +133,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Create server
 	server := &Server{
 		address:        fmt.Sprintf(":%d", port),
+		subpath:        subpath,
 		templates:      templates,
 		featureClient:  featureClient,
 		metaClient:     metaClient,

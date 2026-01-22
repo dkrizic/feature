@@ -13,4 +13,5 @@ const (
 	EnableOpenTelemetry = "enable-opentelemetry"
 	OTLPEndpoint        = "otlp-endpoint"
 	Endpoint            = "endpoint"
+	Subpath             = "subpath"
 )
