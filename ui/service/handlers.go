@@ -23,13 +23,14 @@ type Feature struct {
 
 // registerHandlers registers all HTTP handlers on the provided mux.
 func (s *Server) registerHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("GET /", otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP)
-	mux.HandleFunc("GET /features/list", otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP)
-	mux.HandleFunc("POST /features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
-	mux.HandleFunc("POST /features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
-	mux.HandleFunc("POST /features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
-	mux.HandleFunc("POST /workload/restart", otelhttp.NewHandler(http.HandlerFunc(s.handleWorkloadRestart), "handleWorkloadRestart").ServeHTTP)
-	mux.HandleFunc("GET /health", s.handleHealth)
+
+	prefix := s.subpath
+	mux.HandleFunc("GET "+prefix+"/", otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP)
+	mux.HandleFunc("GET "+prefix+"/features/list", otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
+	mux.HandleFunc("GET "+prefix+"/health", s.handleHealth)
 }
 
 // handleIndex renders the full HTML page with HTMX.
@@ -40,9 +41,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		UIVersion      string
 		BackendVersion string
+		Subpath        string
 	}{
 		UIVersion:      s.uiVersion,
 		BackendVersion: s.backendVersion,
+		Subpath:        s.subpath,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "index.gohtml", data); err != nil {
@@ -98,8 +101,10 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Features []Feature
+		Subpath  string
 	}{
 		Features: features,
+		Subpath:  s.subpath,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "features_list.gohtml", data); err != nil {

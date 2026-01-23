@@ -80,6 +80,8 @@ ui:
   service:
     port: 80
   endpoint: ""
+  # Subpath for the UI (e.g., /feature)
+  subpath: ""
   livenessProbe:
     httpGet:
       path: /health
