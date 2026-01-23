@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
-	"time"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"

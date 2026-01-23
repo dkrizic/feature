@@ -419,3 +419,236 @@ func TestRegisterHandlers(t *testing.T) {
 		})
 	}
 }
+
+// TestAuthMiddleware tests the authentication middleware
+func TestAuthMiddleware(t *testing.T) {
+	templates := ParseTemplates(context.Background())
+	assert.NotNil(t, templates)
+
+	t.Run("AuthDisabled", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: false,
+			uiVersion:   "test",
+		}
+
+		handler := server.authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest("GET", "/", nil)
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("AuthEnabledNoSession", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: true,
+			uiVersion:   "test",
+		}
+
+		handler := server.authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest("GET", "/", nil)
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/login", w.Header().Get("Location"))
+	})
+
+	t.Run("AuthEnabledWithValidSession", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: true,
+			uiVersion:   "test",
+		}
+
+		// Create a valid session
+		sessionID := generateSessionID()
+		sessionStore[sessionID] = true
+
+		handler := server.authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		req := httptest.NewRequest("GET", "/", nil)
+		req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+		w := httptest.NewRecorder()
+
+		handler.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Clean up
+		delete(sessionStore, sessionID)
+	})
+}
+
+// TestHandleLogin tests the login handler
+func TestHandleLogin(t *testing.T) {
+	templates := ParseTemplates(context.Background())
+	assert.NotNil(t, templates)
+
+	t.Run("ValidCredentials", func(t *testing.T) {
+		server := &Server{
+			templates:    templates,
+			authEnabled:  true,
+			authUsername: "admin",
+			authPassword: "password",
+			uiVersion:    "test",
+		}
+
+		form := url.Values{}
+		form.Set("username", "admin")
+		form.Set("password", "password")
+
+		req := httptest.NewRequest("POST", "/login", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+
+		server.handleLogin(w, req)
+
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/", w.Header().Get("Location"))
+
+		// Check for session cookie
+		cookies := w.Result().Cookies()
+		assert.NotEmpty(t, cookies)
+		found := false
+		for _, cookie := range cookies {
+			if cookie.Name == "session" {
+				found = true
+				assert.NotEmpty(t, cookie.Value)
+				assert.True(t, cookie.HttpOnly)
+			}
+		}
+		assert.True(t, found, "Session cookie should be set")
+	})
+
+	t.Run("InvalidCredentials", func(t *testing.T) {
+		server := &Server{
+			templates:    templates,
+			authEnabled:  true,
+			authUsername: "admin",
+			authPassword: "password",
+			uiVersion:    "test",
+		}
+
+		form := url.Values{}
+		form.Set("username", "admin")
+		form.Set("password", "wrongpassword")
+
+		req := httptest.NewRequest("POST", "/login", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		w := httptest.NewRecorder()
+
+		server.handleLogin(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid username or password")
+	})
+}
+
+// TestHandleLogout tests the logout handler
+func TestHandleLogout(t *testing.T) {
+	templates := ParseTemplates(context.Background())
+	assert.NotNil(t, templates)
+
+	server := &Server{
+		templates:   templates,
+		authEnabled: true,
+		uiVersion:   "test",
+	}
+
+	// Create a session
+	sessionID := generateSessionID()
+	sessionStore[sessionID] = true
+
+	req := httptest.NewRequest("POST", "/logout", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+	w := httptest.NewRecorder()
+
+	server.handleLogout(w, req)
+
+	assert.Equal(t, http.StatusSeeOther, w.Code)
+	assert.Equal(t, "/login", w.Header().Get("Location"))
+
+	// Check that session is removed
+	assert.False(t, sessionStore[sessionID])
+
+	// Check for cleared cookie
+	cookies := w.Result().Cookies()
+	assert.NotEmpty(t, cookies)
+	for _, cookie := range cookies {
+		if cookie.Name == "session" {
+			assert.Equal(t, -1, cookie.MaxAge)
+		}
+	}
+}
+
+// TestHandleLoginPage tests the login page handler
+func TestHandleLoginPage(t *testing.T) {
+	templates := ParseTemplates(context.Background())
+	assert.NotNil(t, templates)
+
+	t.Run("AuthDisabled", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: false,
+			uiVersion:   "test",
+		}
+
+		req := httptest.NewRequest("GET", "/login", nil)
+		w := httptest.NewRecorder()
+
+		server.handleLoginPage(w, req)
+
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/", w.Header().Get("Location"))
+	})
+
+	t.Run("AuthEnabledNoSession", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: true,
+			uiVersion:   "test",
+		}
+
+		req := httptest.NewRequest("GET", "/login", nil)
+		w := httptest.NewRecorder()
+
+		server.handleLoginPage(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "Login to continue")
+	})
+
+	t.Run("AuthEnabledWithSession", func(t *testing.T) {
+		server := &Server{
+			templates:   templates,
+			authEnabled: true,
+			uiVersion:   "test",
+		}
+
+		// Create a valid session
+		sessionID := generateSessionID()
+		sessionStore[sessionID] = true
+
+		req := httptest.NewRequest("GET", "/login", nil)
+		req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
+		w := httptest.NewRecorder()
+
+		server.handleLoginPage(w, req)
+
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/", w.Header().Get("Location"))
+
+		// Clean up
+		delete(sessionStore, sessionID)
+	})
+}
