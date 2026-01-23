@@ -60,6 +60,10 @@ The following table lists the main configurable parameters of the Feature chart 
 | `ui.replicaCount` | Number of UI replicas | `1` |
 | `ui.image.repository` | UI image repository | `ghcr.io/dkrizic/feature/feature-ui` |
 | `ui.endpoint` | Feature service endpoint (defaults to service name) | `""` |
+| `ui.auth.enabled` | Enable authentication for the UI | `false` |
+| `ui.auth.username` | Username for authentication (if not using existingSecret) | `""` |
+| `ui.auth.password` | Password for authentication (if not using existingSecret) | `""` |
+| `ui.auth.existingSecret` | Use existing Kubernetes Secret with 'username' and 'password' keys | `""` |
 | `ui.ingress.enabled` | Enable Ingress for UI | `false` |
 | `ui.ingress.className` | Ingress class name | `""` |
 | `ui.ingress.annotations` | Ingress annotations | `{}` |
@@ -227,3 +231,41 @@ helm template my-feature charts/feature
 # Install from local files
 helm install my-feature charts/feature
 ```
+
+## UI Authentication
+
+The UI supports optional authentication via a login screen. When enabled, users must authenticate with a username and password before accessing the feature management interface.
+
+### Enable Authentication with Inline Credentials
+
+```bash
+helm install my-feature feature/feature \
+  --set ui.auth.enabled=true \
+  --set ui.auth.username=admin \
+  --set ui.auth.password=secretpassword
+```
+
+### Enable Authentication with Existing Secret
+
+First, create a Kubernetes secret with username and password keys:
+
+```bash
+kubectl create secret generic my-auth-secret \
+  --from-literal=username=admin \
+  --from-literal=password=secretpassword
+```
+
+Then install the chart referencing the existing secret:
+
+```bash
+helm install my-feature feature/feature \
+  --set ui.auth.enabled=true \
+  --set ui.auth.existingSecret=my-auth-secret
+```
+
+### Security Considerations
+
+- Sessions are managed using HTTP-only cookies to prevent XSS attacks
+- Credentials should be stored in Kubernetes Secrets for production environments
+- Consider using `ui.auth.existingSecret` instead of inline credentials to avoid storing passwords in values files
+- When using HTTPS/TLS with ingress, cookies will have the Secure flag set automatically
