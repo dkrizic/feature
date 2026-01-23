@@ -2,11 +2,13 @@ package service
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"io"
 	"log/slog"
 	"net/http"
 	"sort"
+	"sync"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -21,14 +23,19 @@ type Feature struct {
 	Value string
 }
 
-// sessionStore holds active sessions in memory
-var sessionStore = make(map[string]bool)
+// sessionStore holds active sessions in memory with thread-safe access
+var (
+	sessionStore = make(map[string]bool)
+	sessionMutex sync.RWMutex
+)
 
 // generateSessionID creates a random session ID
-func generateSessionID() string {
+func generateSessionID() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // authMiddleware checks if the user is authenticated
@@ -41,9 +48,15 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 		// Check for session cookie
 		cookie, err := r.Cookie("session")
-		if err == nil && sessionStore[cookie.Value] {
-			next.ServeHTTP(w, r)
-			return
+		if err == nil {
+			sessionMutex.RLock()
+			authenticated := sessionStore[cookie.Value]
+			sessionMutex.RUnlock()
+			
+			if authenticated {
+				next.ServeHTTP(w, r)
+				return
+			}
 		}
 
 		// Redirect to login page
@@ -80,9 +93,15 @@ func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 
 	// If already logged in, redirect to home
 	cookie, err := r.Cookie("session")
-	if err == nil && sessionStore[cookie.Value] {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
+	if err == nil {
+		sessionMutex.RLock()
+		authenticated := sessionStore[cookie.Value]
+		sessionMutex.RUnlock()
+		
+		if authenticated {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
 	}
 
 	data := struct {
@@ -117,11 +136,27 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	// Validate credentials
-	if username == s.authUsername && password == s.authPassword {
+	// Validate credentials using constant time comparison to prevent timing attacks
+	usernameMatch := subtle.ConstantTimeCompare([]byte(username), []byte(s.authUsername)) == 1
+	passwordMatch := subtle.ConstantTimeCompare([]byte(password), []byte(s.authPassword)) == 1
+	
+	if usernameMatch && passwordMatch {
 		// Create session
-		sessionID := generateSessionID()
+		sessionID, err := generateSessionID()
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to generate session ID", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			span.SetStatus(codes.Error, err.Error())
+			return
+		}
+		
+		sessionMutex.Lock()
 		sessionStore[sessionID] = true
+		sessionMutex.Unlock()
+
+		// Determine if connection is secure (HTTPS)
+		// Check X-Forwarded-Proto header for proxied connections
+		secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
 
 		// Set session cookie (HttpOnly for security)
 		http.SetCookie(w, &http.Cookie{
@@ -129,7 +164,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false, // Set to true in production with HTTPS
+			Secure:   secure,
 			SameSite: http.SameSiteStrictMode,
 			MaxAge:   86400, // 24 hours
 		})
@@ -167,7 +202,9 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
 		// Remove session from store
+		sessionMutex.Lock()
 		delete(sessionStore, cookie.Value)
+		sessionMutex.Unlock()
 		slog.InfoContext(ctx, "User logged out")
 	}
 

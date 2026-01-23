@@ -470,8 +470,12 @@ func TestAuthMiddleware(t *testing.T) {
 		}
 
 		// Create a valid session
-		sessionID := generateSessionID()
+		sessionID, err := generateSessionID()
+		assert.NoError(t, err)
+		
+		sessionMutex.Lock()
 		sessionStore[sessionID] = true
+		sessionMutex.Unlock()
 
 		handler := server.authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -485,7 +489,9 @@ func TestAuthMiddleware(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		// Clean up
+		sessionMutex.Lock()
 		delete(sessionStore, sessionID)
+		sessionMutex.Unlock()
 	})
 }
 
@@ -566,8 +572,12 @@ func TestHandleLogout(t *testing.T) {
 	}
 
 	// Create a session
-	sessionID := generateSessionID()
+	sessionID, err := generateSessionID()
+	assert.NoError(t, err)
+	
+	sessionMutex.Lock()
 	sessionStore[sessionID] = true
+	sessionMutex.Unlock()
 
 	req := httptest.NewRequest("POST", "/logout", nil)
 	req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
@@ -579,7 +589,10 @@ func TestHandleLogout(t *testing.T) {
 	assert.Equal(t, "/login", w.Header().Get("Location"))
 
 	// Check that session is removed
-	assert.False(t, sessionStore[sessionID])
+	sessionMutex.RLock()
+	exists := sessionStore[sessionID]
+	sessionMutex.RUnlock()
+	assert.False(t, exists)
 
 	// Check for cleared cookie
 	cookies := w.Result().Cookies()
@@ -636,8 +649,12 @@ func TestHandleLoginPage(t *testing.T) {
 		}
 
 		// Create a valid session
-		sessionID := generateSessionID()
+		sessionID, err := generateSessionID()
+		assert.NoError(t, err)
+		
+		sessionMutex.Lock()
 		sessionStore[sessionID] = true
+		sessionMutex.Unlock()
 
 		req := httptest.NewRequest("GET", "/login", nil)
 		req.AddCookie(&http.Cookie{Name: "session", Value: sessionID})
@@ -649,6 +666,8 @@ func TestHandleLoginPage(t *testing.T) {
 		assert.Equal(t, "/", w.Header().Get("Location"))
 
 		// Clean up
+		sessionMutex.Lock()
 		delete(sessionStore, sessionID)
+		sessionMutex.Unlock()
 	})
 }
