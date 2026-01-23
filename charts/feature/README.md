@@ -60,6 +60,7 @@ The following table lists the main configurable parameters of the Feature chart 
 | `ui.replicaCount` | Number of UI replicas | `1` |
 | `ui.image.repository` | UI image repository | `ghcr.io/dkrizic/feature/feature-ui` |
 | `ui.endpoint` | Feature service endpoint (defaults to service name) | `""` |
+| `ui.subpath` | Subpath prefix for UI routes (e.g., `/feature` or `/app/v1`) | `""` |
 | `ui.ingress.enabled` | Enable Ingress for UI | `false` |
 | `ui.ingress.className` | Ingress class name | `""` |
 | `ui.ingress.annotations` | Ingress annotations | `{}` |
@@ -187,6 +188,28 @@ ui:
               type: PathPrefix
               value: /
 ```
+
+### Using a Subpath
+
+To deploy the UI at a subpath (e.g., `/feature` instead of `/`):
+
+```yaml
+ui:
+  subpath: /feature
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: example.com
+        paths:
+          - path: /feature
+            pathType: Prefix
+```
+
+With this configuration:
+- The UI will be accessible at `http://example.com/feature/`
+- Health checks will be at `http://example.com/feature/health`
+- All routes will be prefixed with `/feature`
 
 ## RBAC
 

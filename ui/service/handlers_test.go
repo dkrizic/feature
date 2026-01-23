@@ -419,3 +419,89 @@ func TestRegisterHandlers(t *testing.T) {
 		})
 	}
 }
+
+// TestSubpathSupport verifies that routes work correctly with a subpath prefix.
+func TestSubpathSupport(t *testing.T) {
+	tests := []struct {
+		name     string
+		subpath  string
+		testPath string
+		expected int
+	}{
+		{
+			name:     "no subpath - root",
+			subpath:  "",
+			testPath: "/",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "no subpath - health",
+			subpath:  "",
+			testPath: "/health",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "with subpath /feature - root",
+			subpath:  "/feature",
+			testPath: "/feature/",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "with subpath /feature - health",
+			subpath:  "/feature",
+			testPath: "/feature/health",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "with subpath /app/v1 - root",
+			subpath:  "/app/v1",
+			testPath: "/app/v1/",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "with subpath /app/v1 - health",
+			subpath:  "/app/v1",
+			testPath: "/app/v1/health",
+			expected: http.StatusOK,
+		},
+		{
+			name:     "with subpath - wrong path should 404",
+			subpath:  "/feature",
+			testPath: "/",
+			expected: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockFeatureClient := new(MockFeatureClient)
+			mockMetaClient := new(MockMetaClient)
+
+			tmpl := template.Must(template.New("index.gohtml").Parse(`<html><body>Subpath: {{.Subpath}}</body></html>`))
+
+			server := &Server{
+				subpath:       tt.subpath,
+				templates:     tmpl,
+				featureClient: mockFeatureClient,
+				metaClient:    mockMetaClient,
+				uiVersion:     "test",
+			}
+
+			mux := http.NewServeMux()
+			server.registerHandlers(mux)
+
+			req := httptest.NewRequest(http.MethodGet, tt.testPath, nil)
+			w := httptest.NewRecorder()
+
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expected, w.Code, "Expected status code %d, got %d", tt.expected, w.Code)
+
+			// If we expect OK and it's the index page, verify subpath is in the response
+			if tt.expected == http.StatusOK && (tt.testPath == "/" || tt.testPath == "/feature/" || tt.testPath == "/app/v1/") {
+				body, _ := io.ReadAll(w.Body)
+				assert.Contains(t, string(body), "Subpath: "+tt.subpath)
+			}
+		})
+	}
+}

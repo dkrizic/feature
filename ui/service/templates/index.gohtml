@@ -186,7 +186,7 @@
             <h2>Features</h2>
             <div class="card">
                 <div id="feature-list" 
-                     hx-get="/features/list" 
+                     hx-get="{{.Subpath}}/features/list" 
                      hx-trigger="load" 
                      hx-swap="innerHTML">
                     <p aria-busy="true">Loading features...</p>
