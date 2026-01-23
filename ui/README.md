@@ -7,6 +7,7 @@ Comprehensive documentation for the Feature UI service.
 - [Overview](#overview)
 - [Command Line Interface](#command-line-interface)
 - [Environment Variables](#environment-variables)
+- [Authentication](#authentication)
 - [HTTP Routes](#http-routes)
 - [Logging Behavior](#logging-behavior)
 - [OpenTelemetry Integration](#opentelemetry-integration)
@@ -91,6 +92,10 @@ These flags are only available for the `service` subcommand:
 | `--port` | int | `8080` | Port to run the HTTP service on | `PORT` |
 | `--enable-opentelemetry` | bool | `false` | Enable OpenTelemetry tracing and metrics | `ENABLE_OPENTELEMETRY` |
 | `--otlp-endpoint` | string | `localhost:4317` | OTLP endpoint for OpenTelemetry (required if OpenTelemetry is enabled) | `OTLP_ENDPOINT` |
+| `--auth-enabled` | bool | `false` | Enable authentication for the UI | `AUTH_ENABLED` |
+| `--auth-username` | string | `""` | Username for authentication | `AUTH_USERNAME` |
+| `--auth-password` | string | `""` | Password for authentication | `AUTH_PASSWORD` |
+| `--auth-session-timeout` | int | `86400` | Session timeout in seconds (default: 24 hours) | `AUTH_SESSION_TIMEOUT` |
 
 ### Flag Validation Rules
 
@@ -111,28 +116,270 @@ The service can be fully configured via environment variables, which are mapped 
 | `PORT` | `--port` | int | `8080` | No | HTTP server port for the UI service |
 | `ENABLE_OPENTELEMETRY` | `--enable-opentelemetry` | bool | `false` | No | Enable OpenTelemetry instrumentation |
 | `OTLP_ENDPOINT` | `--otlp-endpoint` | string | `localhost:4317` | Conditional* | OTLP gRPC endpoint for telemetry export |
+| `AUTH_ENABLED` | `--auth-enabled` | bool | `false` | No | Enable authentication for the UI |
+| `AUTH_USERNAME` | `--auth-username` | string | `""` | Conditional** | Username for authentication |
+| `AUTH_PASSWORD` | `--auth-password` | string | `""` | Conditional** | Password for authentication |
+| `AUTH_SESSION_TIMEOUT` | `--auth-session-timeout` | int | `86400` | No | Session timeout in seconds (default: 24 hours) |
 
 \* `OTLP_ENDPOINT` is required when `ENABLE_OPENTELEMETRY` is set to `true`.
 
+\*\* `AUTH_USERNAME` and `AUTH_PASSWORD` are required when `AUTH_ENABLED` is set to `true`.
+
+## Authentication
+
+The Feature UI supports optional authentication via a session-based login screen. When enabled, users must provide valid credentials before accessing the feature management interface.
+
+### Overview
+
+- **Optional**: Authentication is disabled by default for backward compatibility
+- **Session-based**: Uses HTTP-only cookies with configurable timeout
+- **Secure**: Implements multiple security best practices
+- **Flexible**: Supports both inline credentials and Kubernetes secrets
+
+### Enabling Authentication
+
+Authentication is controlled by the `AUTH_ENABLED` flag or environment variable:
+
+```bash
+# Enable authentication with environment variables
+export AUTH_ENABLED=true
+export AUTH_USERNAME=admin
+export AUTH_PASSWORD=secretpassword
+
+# Run the service
+go run main.go service
+```
+
+Or using command-line flags:
+
+```bash
+go run main.go service \
+  --auth-enabled \
+  --auth-username admin \
+  --auth-password secretpassword
+```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `AUTH_ENABLED` | Enable/disable authentication | `false` |
+| `AUTH_USERNAME` | Username for login (required if auth enabled) | `""` |
+| `AUTH_PASSWORD` | Password for login (required if auth enabled) | `""` |
+| `AUTH_SESSION_TIMEOUT` | Session timeout in seconds | `86400` (24 hours) |
+
+### Kubernetes Deployment
+
+When deploying to Kubernetes via Helm, authentication can be configured in the `values.yaml`:
+
+#### Option 1: Inline Credentials
+
+```yaml
+ui:
+  auth:
+    enabled: true
+    username: admin
+    password: secretpassword
+```
+
+This creates a Kubernetes Secret automatically with base64-encoded credentials.
+
+#### Option 2: Existing Secret
+
+For better security, reference an existing Kubernetes Secret:
+
+```bash
+# Create the secret first
+kubectl create secret generic my-auth-secret \
+  --from-literal=username=admin \
+  --from-literal=password=secretpassword
+```
+
+```yaml
+ui:
+  auth:
+    enabled: true
+    existingSecret: my-auth-secret
+```
+
+The secret must contain keys named `username` and `password`.
+
+### Security Features
+
+The authentication implementation includes several security best practices:
+
+1. **HTTP-Only Cookies**: Session cookies have the `HttpOnly` flag to prevent JavaScript access and XSS attacks
+2. **Secure Flag Auto-Detection**: Cookies are marked `Secure` when HTTPS is detected (via TLS or `X-Forwarded-Proto` header)
+3. **Constant-Time Comparison**: Credentials are compared using `crypto/subtle.ConstantTimeCompare` to prevent timing attacks
+4. **Thread-Safe Session Store**: Session storage uses mutex protection to prevent race conditions
+5. **SameSite Strict**: Cookies use `SameSite=Strict` mode for CSRF protection
+6. **Secure Random Session IDs**: Session IDs are generated using `crypto/rand` with 32 bytes of entropy
+
+### Authentication Flow
+
+1. **Unauthenticated Access**: When authentication is enabled, accessing any route (except `/login` and `/health`) redirects to the login page
+2. **Login**: Users enter credentials on the login page
+3. **Validation**: Credentials are validated using constant-time comparison
+4. **Session Creation**: A secure random session ID is generated and stored in an HTTP-only cookie
+5. **Authenticated Access**: Users can now access protected routes until session expires or they logout
+6. **Logout**: Users can logout, which clears the session and redirects to the login page
+
+### Protected Routes
+
+When authentication is enabled, the following routes require authentication:
+
+- `GET /` - Main UI page
+- `GET /features/list` - Feature list (HTMX partial)
+- `POST /features/create` - Create feature
+- `POST /features/update` - Update feature
+- `POST /features/delete` - Delete feature
+
+The following routes remain public:
+
+- `GET /login` - Login page
+- `POST /login` - Login form submission
+- `POST /logout` - Logout
+- `GET /health` - Health check endpoint
+
+### Session Management
+
+Sessions are managed in-memory with the following characteristics:
+
+- **Storage**: Sessions are stored in a thread-safe in-memory map
+- **Timeout**: Configurable via `AUTH_SESSION_TIMEOUT` (default: 86400 seconds = 24 hours)
+- **Persistence**: Sessions do not persist across service restarts
+- **Scaling**: For multi-replica deployments, sticky sessions must be configured at the ingress/load balancer level
+
+### Login Page
+
+The login page includes:
+
+- Modern, responsive design with theme support (light/dark/system)
+- Real-time error messages for invalid credentials
+- Theme preference persistence in browser local storage
+- Consistent styling with the main UI
+
+### Example Configurations
+
+#### Development with Basic Auth
+
+```bash
+export AUTH_ENABLED=true
+export AUTH_USERNAME=dev
+export AUTH_PASSWORD=dev123
+export AUTH_SESSION_TIMEOUT=3600  # 1 hour
+
+go run main.go service
+```
+
+#### Production with Long Sessions
+
+```bash
+export AUTH_ENABLED=true
+export AUTH_USERNAME=admin
+export AUTH_PASSWORD=strong-password-here
+export AUTH_SESSION_TIMEOUT=604800  # 7 days
+
+go run main.go service
+```
+
+#### Docker Container
+
+```bash
+docker run -p 8080:8000 \
+  -e AUTH_ENABLED=true \
+  -e AUTH_USERNAME=admin \
+  -e AUTH_PASSWORD=secretpassword \
+  -e AUTH_SESSION_TIMEOUT=86400 \
+  feature-ui:latest service
+```
+
+### Security Considerations
+
+**Session Storage Limitations:**
+- Sessions are stored in-memory and are lost on service restart
+- Multi-replica deployments require sticky sessions or an external session store
+- Consider implementing Redis or database-backed sessions for production multi-replica deployments
+
+**Password Security:**
+- Passwords are stored in environment variables or Kubernetes Secrets
+- Use strong, randomly generated passwords
+- Rotate credentials regularly
+- Never commit credentials to version control
+- Use Kubernetes Secrets instead of inline credentials in production
+
+**HTTPS Requirement:**
+- While cookies work over HTTP in development, always use HTTPS in production
+- The `Secure` flag is automatically set when HTTPS is detected
+- Configure ingress/load balancer to terminate TLS
+
+**Rate Limiting:**
+- The current implementation does not include rate limiting
+- Consider adding rate limiting at the ingress/load balancer level to prevent brute-force attacks
+
+### Troubleshooting
+
+**Cannot login with correct credentials:**
+- Verify `AUTH_ENABLED=true` is set
+- Check that `AUTH_USERNAME` and `AUTH_PASSWORD` match the login form input
+- Review logs for authentication-related errors
+- Ensure there are no extra spaces in environment variables
+
+**Session expires immediately:**
+- Check `AUTH_SESSION_TIMEOUT` is set to a reasonable value (minimum 1 second)
+- Verify the system clock is accurate
+- Check browser cookie settings aren't blocking cookies
+
+**Logout doesn't work:**
+- Verify the `/logout` POST endpoint is accessible
+- Check browser developer tools for JavaScript errors
+- Ensure cookies are enabled in the browser
+
+**Authentication works locally but not in Kubernetes:**
+- Verify the Secret is properly mounted in the deployment
+- Check that environment variables are correctly set from the Secret
+- Review pod logs for authentication configuration errors
+- Ensure Secret keys are named `username` and `password`
+
+\*\* `AUTH_USERNAME` and `AUTH_PASSWORD` are required when `AUTH_ENABLED` is set to `true`.
+
 ## HTTP Routes
 
-The UI service exposes the following HTTP routes. All routes are registered via `Server.registerHandlers` in `ui/service/service.go`.
+The UI service exposes the following HTTP routes. All routes are registered via `Server.registerHandlers` in `ui/service/handlers.go`.
 
-| Route | Method | Handler | Description |
-|-------|--------|---------|-------------|
-| `/` | GET | `handleIndex` | Serves the main HTML page with HTMX |
-| `/features/list` | GET | `handleFeaturesList` | Returns the feature list as HTML partial (for HTMX updates) |
-| `/features/create` | POST | `handleFeatureCreate` | Creates a new feature flag and re-renders the list |
-| `/features/update` | POST | `handleFeatureUpdate` | Updates an existing feature flag and re-renders the list |
-| `/features/delete` | POST | `handleFeatureDelete` | Deletes a feature flag and re-renders the list |
-| `/healthz` | GET | `handleHealth` | Health check endpoint (returns `OK` with 200 status) |
+| Route | Method | Handler | Description | Auth Required |
+|-------|--------|---------|-------------|---------------|
+| `/` | GET | `handleIndex` | Serves the main HTML page with HTMX | Yes* |
+| `/features/list` | GET | `handleFeaturesList` | Returns the feature list as HTML partial (for HTMX updates) | Yes* |
+| `/features/create` | POST | `handleFeatureCreate` | Creates a new feature flag and re-renders the list | Yes* |
+| `/features/update` | POST | `handleFeatureUpdate` | Updates an existing feature flag and re-renders the list | Yes* |
+| `/features/delete` | POST | `handleFeatureDelete` | Deletes a feature flag and re-renders the list | Yes* |
+| `/login` | GET | `handleLoginPage` | Displays the login page | No |
+| `/login` | POST | `handleLogin` | Processes login form submission | No |
+| `/logout` | POST | `handleLogout` | Logs out the user and clears session | No |
+| `/health` | GET | `handleHealth` | Health check endpoint (returns `OK` with 200 status) | No |
+
+\* Auth required only when `AUTH_ENABLED=true`
 
 ### Route Details
 
-- **Main UI (`/`)**: Serves the full HTML page including UI and backend version information
+- **Main UI (`/`)**: Serves the full HTML page including UI and backend version information. Shows logout button when authenticated.
 - **Feature List (`/features/list`)**: Fetches all features from the backend via gRPC and renders them as an HTML fragment
 - **CRUD Operations**: All create, update, and delete operations re-render the feature list automatically
-- **Health Check (`/healthz`)**: Used by Kubernetes liveness/readiness probes
+- **Login Page (`/login` GET)**: Displays the authentication form when auth is enabled. Redirects to home if already logged in.
+- **Login Handler (`/login` POST)**: Validates credentials and creates a session cookie. Redirects to home on success or re-displays login with error message on failure.
+- **Logout Handler (`/logout` POST)**: Clears the session cookie and redirects to the login page
+- **Health Check (`/health`)**: Always accessible without authentication for Kubernetes liveness/readiness probes
+
+### Authentication Middleware
+
+When `AUTH_ENABLED=true`, the authentication middleware (`authMiddleware`) protects all feature management routes:
+
+1. Checks for a valid session cookie
+2. Redirects to `/login` if no valid session exists
+3. Allows access to the requested route if session is valid
+
+Public routes (`/login`, `/logout`, `/health`) bypass the authentication middleware.
 
 > **Note**: When adding new routes, ensure they are registered in `Server.registerHandlers` and update this documentation accordingly.
 
@@ -437,6 +684,19 @@ go run main.go service \
   --enable-opentelemetry \
   --otlp-endpoint localhost:4317
 
+# Run with authentication enabled
+go run main.go service \
+  --auth-enabled \
+  --auth-username admin \
+  --auth-password secretpassword
+
+# Run with authentication and custom session timeout (1 hour)
+go run main.go service \
+  --auth-enabled \
+  --auth-username admin \
+  --auth-password secretpassword \
+  --auth-session-timeout 3600
+
 # Check version
 go run main.go version
 ```
@@ -451,6 +711,12 @@ export LOG_FORMAT=json
 export LOG_LEVEL=debug
 export ENABLE_OPENTELEMETRY=true
 export OTLP_ENDPOINT=localhost:4317
+
+# Optional: Enable authentication
+export AUTH_ENABLED=true
+export AUTH_USERNAME=admin
+export AUTH_PASSWORD=secretpassword
+export AUTH_SESSION_TIMEOUT=86400
 
 # Run the service
 go run main.go service
@@ -547,9 +813,15 @@ When making changes to the UI service, remember to update this README if:
 - Check logs for template parsing errors
 
 **Health check failing:**
-- The `/healthz` endpoint should always return `200 OK`
+- The `/health` endpoint should always return `200 OK`
 - If failing, check that the HTTP server is running
 - Verify the port is not blocked by a firewall
+
+**Authentication issues:**
+- **Cannot login with correct credentials**: Verify `AUTH_ENABLED=true`, check username/password match, review logs for errors
+- **Session expires immediately**: Check `AUTH_SESSION_TIMEOUT` value, verify system clock, check browser cookie settings
+- **Logout doesn't work**: Verify `/logout` endpoint is accessible, check browser console for errors, ensure cookies are enabled
+- **Works locally but not in Kubernetes**: Verify Secret is mounted, check environment variables, review pod logs, ensure Secret keys are `username` and `password`
 
 ### Useful Resources
 
