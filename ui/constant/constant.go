@@ -13,6 +13,7 @@ const (
 	EnableOpenTelemetry = "enable-opentelemetry"
 	OTLPEndpoint        = "otlp-endpoint"
 	Endpoint            = "endpoint"
+	Subpath             = "subpath"
 	AuthEnabled         = "auth-enabled"
 	AuthUsername        = "auth-username"
 	AuthPassword        = "auth-password"

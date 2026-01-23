@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"sync"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
+	workloadv1 "github.com/dkrizic/feature/ui/repository/workload/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -66,18 +68,20 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 
 // registerHandlers registers all HTTP handlers on the provided mux.
 func (s *Server) registerHandlers(mux *http.ServeMux) {
+	prefix := s.subpath
+	
 	// Public routes
-	mux.HandleFunc("GET /login", s.handleLoginPage)
-	mux.HandleFunc("POST /login", s.handleLogin)
-	mux.HandleFunc("POST /logout", s.handleLogout)
-	mux.HandleFunc("GET /health", s.handleHealth)
+	mux.HandleFunc("GET "+prefix+"/login", s.handleLoginPage)
+	mux.HandleFunc("POST "+prefix+"/login", s.handleLogin)
+	mux.HandleFunc("POST "+prefix+"/logout", s.handleLogout)
+	mux.HandleFunc("GET "+prefix+"/health", s.handleHealth)
 
 	// Protected routes (with auth middleware)
-	mux.HandleFunc("GET /", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex")).ServeHTTP)
-	mux.HandleFunc("GET /features/list", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList")).ServeHTTP)
-	mux.HandleFunc("POST /features/create", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate")).ServeHTTP)
-	mux.HandleFunc("POST /features/update", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate")).ServeHTTP)
-	mux.HandleFunc("POST /features/delete", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete")).ServeHTTP)
+	mux.HandleFunc("GET "+prefix+"/", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex")).ServeHTTP)
+	mux.HandleFunc("GET "+prefix+"/features/list", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList")).ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/create", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate")).ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/update", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate")).ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/features/delete", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete")).ServeHTTP)
 }
 
 // handleLoginPage renders the login page
@@ -232,10 +236,12 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		UIVersion      string
 		BackendVersion string
+		Subpath        string
 		Authenticated  bool
 	}{
 		UIVersion:      s.uiVersion,
 		BackendVersion: s.backendVersion,
+		Subpath:        s.subpath,
 		Authenticated:  s.authEnabled,
 	}
 
@@ -292,8 +298,10 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		Features []Feature
+		Subpath  string
 	}{
 		Features: features,
+		Subpath:  s.subpath,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "features_list.gohtml", data); err != nil {
@@ -422,4 +430,82 @@ func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// handleWorkloadRestart handles workload restart requests
+func (s *Server) handleWorkloadRestart(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleWorkloadRestart")
+	defer span.End()
+
+	slog.InfoContext(ctx, "Handling workload restart request")
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	workloadType := r.FormValue("type")
+	workloadName := r.FormValue("name")
+	namespace := r.FormValue("namespace")
+
+	// Validate inputs
+	if workloadType == "" {
+		slog.ErrorContext(ctx, "Missing workload type parameter")
+		http.Error(w, "Missing workload type parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing workload type parameter")
+		return
+	}
+
+	if workloadName == "" {
+		slog.ErrorContext(ctx, "Missing workload name parameter")
+		http.Error(w, "Missing workload name parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing workload name parameter")
+		return
+	}
+
+	// Map string type to protobuf enum
+	var protoType workloadv1.WorkloadType
+	switch workloadType {
+	case "deployment":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_DEPLOYMENT
+	case "statefulset":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_STATEFULSET
+	case "daemonset":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_DAEMONSET
+	default:
+		slog.ErrorContext(ctx, "Invalid workload type", "type", workloadType)
+		http.Error(w, fmt.Sprintf("Invalid workload type: %s", workloadType), http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Invalid workload type")
+		return
+	}
+
+	// Call the gRPC backend
+	resp, err := s.workloadClient.RestartWorkload(ctx, &workloadv1.RestartRequest{
+		Type:      protoType,
+		Name:      workloadName,
+		Namespace: namespace,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to restart workload", "type", workloadType, "name", workloadName, "error", err)
+		http.Error(w, fmt.Sprintf("Failed to restart workload: %v", err), http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	if !resp.Success {
+		slog.WarnContext(ctx, "Workload restart unsuccessful", "message", resp.Message)
+		http.Error(w, resp.Message, http.StatusBadRequest)
+		span.SetStatus(codes.Error, resp.Message)
+		return
+	}
+
+	slog.InfoContext(ctx, "Workload restarted successfully", "type", workloadType, "name", workloadName, "namespace", namespace)
+
+	// Return success message
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`<div class="success-message">%s</div>`, resp.Message)))
 }

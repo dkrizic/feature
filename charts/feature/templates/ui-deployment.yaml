@@ -59,13 +59,17 @@ spec:
                   name: {{ default (printf "%s-auth" (include "feature.ui.fullname" .)) .Values.ui.auth.existingSecret }}
                   key: password
           {{- end }}
-          {{- with .Values.ui.livenessProbe }}
+          {{- if .Values.ui.livenessProbe }}
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
+            httpGet:
+              path: {{ print (.Values.ui.subpath | default "") "/health" }}
+              port: http
           {{- end }}
-          {{- with .Values.ui.readinessProbe }}
+          {{- if .Values.ui.readinessProbe }}
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
+            httpGet:
+              path: {{ print (.Values.ui.subpath | default "") "/health" }}
+              port: http
           {{- end }}
           {{- with .Values.ui.resources }}
           resources:

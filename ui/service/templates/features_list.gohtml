@@ -2,7 +2,7 @@
     <header>
         <h3>Create New Feature Flag</h3>
     </header>
-    <form hx-post="/features/create" 
+    <form hx-post="{{.Subpath}}/features/create" 
           hx-target="#feature-list" 
           hx-swap="innerHTML"
           onsubmit="return validateCreateFeature(this)">
@@ -109,7 +109,7 @@ function confirmDeleteFeature(key) {
         <tr>
             <td>{{.Key}}</td>
             <td>
-                <form hx-post="/features/update" 
+                <form hx-post="{{$.Subpath}}/features/update" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
                       id="form-{{.Key}}"
@@ -121,7 +121,7 @@ function confirmDeleteFeature(key) {
                 </form>
             </td>
             <td>
-                <form hx-post="/features/delete" 
+                <form hx-post="{{$.Subpath}}/features/delete" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
                       onsubmit="return confirmDeleteFeature('{{.Key}}')"

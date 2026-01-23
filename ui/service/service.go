@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/dkrizic/feature/ui/meta"
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	metav1 "github.com/dkrizic/feature/ui/repository/meta/v1"
+	workloadv1 "github.com/dkrizic/feature/ui/repository/workload/v1"
 	"github.com/urfave/cli/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,9 +29,11 @@ import (
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
 	address            string
+	subpath            string
 	templates          *template.Template
 	featureClient      featurev1.FeatureClient
 	metaClient         metav1.MetaClient
+	workloadClient     workloadv1.WorkloadClient
 	backendVersion     string
 	uiVersion          string
 	httpServer         *http.Server
@@ -87,12 +91,21 @@ func After(ctx context.Context, cmd *cli.Command) error {
 func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
+	subpath := cmd.String(constant.Subpath)
 	authEnabled := cmd.Bool(constant.AuthEnabled)
 	authUsername := cmd.String(constant.AuthUsername)
 	authPassword := cmd.String(constant.AuthPassword)
 	authSessionTimeout := cmd.Int(constant.AuthSessionTimeout)
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "authEnabled", authEnabled, "authSessionTimeout", authSessionTimeout)
+	// Normalize subpath: ensure it starts with / and doesn't end with /
+	if subpath != "" {
+		if !strings.HasPrefix(subpath, "/") {
+			subpath = "/" + subpath
+		}
+		subpath = strings.TrimSuffix(subpath, "/")
+	}
+
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath, "authEnabled", authEnabled, "authSessionTimeout", authSessionTimeout)
 
 	// Validate authentication configuration
 	if authEnabled {
@@ -126,6 +139,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Initialize gRPC clients
 	featureClient := featurev1.NewFeatureClient(conn)
 	metaClient := metav1.NewMetaClient(conn)
+	workloadClient := workloadv1.NewWorkloadClient(conn)
 
 	// Fetch backend version
 	backendVersion := ""
@@ -142,9 +156,11 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Create server
 	server := &Server{
 		address:            fmt.Sprintf(":%d", port),
+		subpath:            subpath,
 		templates:          templates,
 		featureClient:      featureClient,
 		metaClient:         metaClient,
+		workloadClient:     workloadClient,
 		backendVersion:     backendVersion,
 		uiVersion:          meta.Version,
 		authEnabled:        authEnabled,

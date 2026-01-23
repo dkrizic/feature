@@ -78,6 +78,13 @@ func main() {
 						Usage:    "Port to run the service on",
 						Sources:  cli.EnvVars("PORT"),
 					},
+					&cli.StringFlag{
+						Name:     constant.Subpath,
+						Value:    "",
+						Category: "service",
+						Usage:    "Subpath for the UI (e.g., /feature)",
+						Sources:  cli.EnvVars("SUBPATH"),
+					},
 					&cli.BoolFlag{
 						Name:     constant.EnableOpenTelemetry,
 						Value:    false,

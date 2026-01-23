@@ -90,6 +90,7 @@ These flags are only available for the `service` subcommand:
 | Flag | Type | Default | Description | Environment Variable |
 |------|------|---------|-------------|---------------------|
 | `--port` | int | `8080` | Port to run the HTTP service on | `PORT` |
+| `--subpath` | string | `""` | Subpath for the UI (e.g., `/feature`) | `SUBPATH` |
 | `--enable-opentelemetry` | bool | `false` | Enable OpenTelemetry tracing and metrics | `ENABLE_OPENTELEMETRY` |
 | `--otlp-endpoint` | string | `localhost:4317` | OTLP endpoint for OpenTelemetry (required if OpenTelemetry is enabled) | `OTLP_ENDPOINT` |
 | `--auth-enabled` | bool | `false` | Enable authentication for the UI | `AUTH_ENABLED` |
@@ -114,6 +115,7 @@ The service can be fully configured via environment variables, which are mapped 
 | `LOG_LEVEL` | `--log-level` | string | `info` | No | Log verbosity level (`debug`, `info`, `warn`, `error`) |
 | `ENDPOINT` | `--endpoint` | string | `localhost:8000` | Yes | Backend gRPC service endpoint (host:port) |
 | `PORT` | `--port` | int | `8080` | No | HTTP server port for the UI service |
+| `SUBPATH` | `--subpath` | string | `""` | No | Subpath prefix for the UI (e.g., `/feature` or `/app/v1`). When set, all routes are prefixed with this path. |
 | `ENABLE_OPENTELEMETRY` | `--enable-opentelemetry` | bool | `false` | No | Enable OpenTelemetry instrumentation |
 | `OTLP_ENDPOINT` | `--otlp-endpoint` | string | `localhost:4317` | Conditional* | OTLP gRPC endpoint for telemetry export |
 | `AUTH_ENABLED` | `--auth-enabled` | bool | `false` | No | Enable authentication for the UI |
@@ -347,6 +349,8 @@ docker run -p 8080:8000 \
 
 The UI service exposes the following HTTP routes. All routes are registered via `Server.registerHandlers` in `ui/service/handlers.go`.
 
+**Note**: All routes can be prefixed with a subpath when the `SUBPATH` environment variable is set (e.g., `/feature` or `/app/v1`). The routes below show the default paths without a subpath prefix.
+
 | Route | Method | Handler | Description | Auth Required |
 |-------|--------|---------|-------------|---------------|
 | `/` | GET | `handleIndex` | Serves the main HTML page with HTMX | Yes* |
@@ -370,6 +374,7 @@ The UI service exposes the following HTTP routes. All routes are registered via 
 - **Login Handler (`/login` POST)**: Validates credentials and creates a session cookie. Redirects to home on success or re-displays login with error message on failure.
 - **Logout Handler (`/logout` POST)**: Clears the session cookie and redirects to the login page
 - **Health Check (`/health`)**: Always accessible without authentication for Kubernetes liveness/readiness probes
+- **Subpath Support**: When `SUBPATH` is configured (e.g., `/feature`), all routes are prefixed. For example, the main UI becomes `/feature/` and health check becomes `/feature/health`.
 
 ### Authentication Middleware
 
@@ -676,6 +681,9 @@ go run main.go service
 # Run with custom settings
 go run main.go service --endpoint localhost:9000 --port 3000
 
+# Run with a subpath prefix (e.g., /feature)
+go run main.go service --subpath /feature
+
 # Run with JSON logging and debug level
 go run main.go service --log-format json --log-level debug
 
@@ -707,6 +715,7 @@ go run main.go version
 # Set environment variables
 export ENDPOINT=localhost:8000
 export PORT=8080
+export SUBPATH=/feature
 export LOG_FORMAT=json
 export LOG_LEVEL=debug
 export ENABLE_OPENTELEMETRY=true
