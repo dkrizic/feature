@@ -46,6 +46,19 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "feature.ui.fullname" . }}
+          {{- if .Values.ui.auth.enabled }}
+          env:
+            - name: AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-auth" (include "feature.ui.fullname" .)) .Values.ui.auth.existingSecret }}
+                  key: username
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-auth" (include "feature.ui.fullname" .)) .Values.ui.auth.existingSecret }}
+                  key: password
+          {{- end }}
           {{- with .Values.ui.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

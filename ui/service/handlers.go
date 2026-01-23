@@ -1,10 +1,13 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"io"
 	"log/slog"
 	"net/http"
 	"sort"
+	"time"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -19,14 +22,166 @@ type Feature struct {
 	Value string
 }
 
+// sessionStore holds active sessions in memory
+var sessionStore = make(map[string]bool)
+
+// generateSessionID creates a random session ID
+func generateSessionID() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+// authMiddleware checks if the user is authenticated
+func (s *Server) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.authEnabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Check for session cookie
+		cookie, err := r.Cookie("session")
+		if err == nil && sessionStore[cookie.Value] {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Redirect to login page
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	})
+}
+
 // registerHandlers registers all HTTP handlers on the provided mux.
 func (s *Server) registerHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("GET /", otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP)
-	mux.HandleFunc("GET /features/list", otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP)
-	mux.HandleFunc("POST /features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
-	mux.HandleFunc("POST /features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
-	mux.HandleFunc("POST /features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
+	// Public routes
+	mux.HandleFunc("GET /login", s.handleLoginPage)
+	mux.HandleFunc("POST /login", s.handleLogin)
+	mux.HandleFunc("POST /logout", s.handleLogout)
 	mux.HandleFunc("GET /health", s.handleHealth)
+
+	// Protected routes (with auth middleware)
+	mux.HandleFunc("GET /", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex")).ServeHTTP)
+	mux.HandleFunc("GET /features/list", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList")).ServeHTTP)
+	mux.HandleFunc("POST /features/create", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate")).ServeHTTP)
+	mux.HandleFunc("POST /features/update", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate")).ServeHTTP)
+	mux.HandleFunc("POST /features/delete", s.authMiddleware(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete")).ServeHTTP)
+}
+
+// handleLoginPage renders the login page
+func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleLoginPage")
+	defer span.End()
+
+	// If auth is disabled, redirect to home
+	if !s.authEnabled {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// If already logged in, redirect to home
+	cookie, err := r.Cookie("session")
+	if err == nil && sessionStore[cookie.Value] {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	data := struct {
+		UIVersion string
+		Error     string
+	}{
+		UIVersion: s.uiVersion,
+		Error:     "",
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "login.gohtml", data); err != nil {
+		slog.ErrorContext(ctx, "Failed to render login template", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+}
+
+// handleLogin processes login form submission
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleLogin")
+	defer span.End()
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	// Validate credentials
+	if username == s.authUsername && password == s.authPassword {
+		// Create session
+		sessionID := generateSessionID()
+		sessionStore[sessionID] = true
+
+		// Set session cookie (HttpOnly for security)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    sessionID,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false, // Set to true in production with HTTPS
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   86400, // 24 hours
+		})
+
+		slog.InfoContext(ctx, "User logged in", "username", username)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Invalid credentials
+	slog.WarnContext(ctx, "Invalid login attempt", "username", username)
+
+	data := struct {
+		UIVersion string
+		Error     string
+	}{
+		UIVersion: s.uiVersion,
+		Error:     "Invalid username or password",
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "login.gohtml", data); err != nil {
+		slog.ErrorContext(ctx, "Failed to render login template", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+}
+
+// handleLogout logs out the user by clearing their session
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleLogout")
+	defer span.End()
+
+	// Get session cookie
+	cookie, err := r.Cookie("session")
+	if err == nil {
+		// Remove session from store
+		delete(sessionStore, cookie.Value)
+		slog.InfoContext(ctx, "User logged out")
+	}
+
+	// Clear cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1, // Delete cookie
+	})
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // handleIndex renders the full HTML page with HTMX.
@@ -37,9 +192,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		UIVersion      string
 		BackendVersion string
+		Authenticated  bool
 	}{
 		UIVersion:      s.uiVersion,
 		BackendVersion: s.backendVersion,
+		Authenticated:  s.authEnabled,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "index.gohtml", data); err != nil {

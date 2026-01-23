@@ -33,6 +33,9 @@ type Server struct {
 	backendVersion string
 	uiVersion      string
 	httpServer     *http.Server
+	authEnabled    bool
+	authUsername   string
+	authPassword   string
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -83,8 +86,19 @@ func After(ctx context.Context, cmd *cli.Command) error {
 func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
+	authEnabled := cmd.Bool(constant.AuthEnabled)
+	authUsername := cmd.String(constant.AuthUsername)
+	authPassword := cmd.String(constant.AuthPassword)
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint)
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "authEnabled", authEnabled)
+
+	// Validate authentication configuration
+	if authEnabled {
+		if authUsername == "" || authPassword == "" {
+			slog.ErrorContext(ctx, "Authentication is enabled but username or password is not set")
+			return fmt.Errorf("authentication is enabled but username or password is not set")
+		}
+	}
 
 	// Parse templates
 	templates := ParseTemplates(ctx)
@@ -127,6 +141,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		metaClient:     metaClient,
 		backendVersion: backendVersion,
 		uiVersion:      meta.Version,
+		authEnabled:    authEnabled,
+		authUsername:   authUsername,
+		authPassword:   authPassword,
 	}
 
 	// Setup HTTP routes

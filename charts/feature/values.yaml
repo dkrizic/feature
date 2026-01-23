@@ -145,6 +145,15 @@ ui:
   opentelemetry:
     enabled: false
     endpoint: ""
+  # Optional authentication for the UI
+  auth:
+    # Enable authentication
+    enabled: false
+    # Username and password for basic authentication (if not using existingSecret)
+    username: ""
+    password: ""
+    # Use an existing Kubernetes Secret with 'username' and 'password' keys
+    existingSecret: ""
 
 # Default values for feature.
 # This is a YAML-formatted file.

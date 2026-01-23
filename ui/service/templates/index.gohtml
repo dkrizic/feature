@@ -173,7 +173,12 @@
                     </small>
                 </p>
             </div>
-            <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                {{if .Authenticated}}
+                <form method="POST" action="/logout" style="margin: 0;">
+                    <button type="submit" class="btn-icon" style="margin: 0;">Logout</button>
+                </form>
+                {{end}}
                 <select class="theme-toggle" id="theme-toggle" aria-label="Theme selector">
                     <option value="system">System</option>
                     <option value="light">Light</option>
