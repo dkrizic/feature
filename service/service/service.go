@@ -29,6 +29,8 @@ import (
 	"github.com/dkrizic/feature/service/service/feature/v1"
 	"github.com/dkrizic/feature/service/service/meta"
 	"github.com/dkrizic/feature/service/service/meta/v1"
+	"github.com/dkrizic/feature/service/service/workload"
+	workloadv1 "github.com/dkrizic/feature/service/service/workload/v1"
 )
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -140,6 +142,20 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to create feature service: %w", err)
 	}
 	featurev1.RegisterFeatureServer(grpcServer, featureService)
+
+	// workload
+	// Get the namespace from the environment, default to "default"
+	namespace := os.Getenv("POD_NAMESPACE")
+	if namespace == "" {
+		namespace = "default"
+	}
+	workloadService, err := workload.NewWorkloadService(namespace)
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to create workload service (workload restart feature will be disabled)", "error", err)
+	} else {
+		workloadv1.RegisterWorkloadServer(grpcServer, workloadService)
+		slog.InfoContext(ctx, "Workload service enabled", "namespace", namespace)
+	}
 
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT

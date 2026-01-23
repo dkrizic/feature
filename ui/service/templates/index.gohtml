@@ -159,6 +159,16 @@
             font-size: 0.75rem;
             color: var(--muted-color);
         }
+
+        /* Success message */
+        .success-message {
+            color: #28a745;
+            padding: 0.75rem 1rem;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -193,9 +203,50 @@
                 </div>
             </div>
         </section>
+
+        <section>
+            <h2>Workload Management</h2>
+            <div class="card">
+                <h3>Restart Workload</h3>
+                <form hx-post="/workload/restart" 
+                      hx-target="#workload-result" 
+                      hx-swap="innerHTML"
+                      onsubmit="return confirmWorkloadRestart(this)">
+                    <div style="display: grid; grid-template-columns: 1fr 2fr 1fr auto; gap: 0.5rem; align-items: end;">
+                        <div>
+                            <label for="workload-type">Type</label>
+                            <select id="workload-type" name="type" required>
+                                <option value="">Select type</option>
+                                <option value="deployment">Deployment</option>
+                                <option value="statefulset">StatefulSet</option>
+                                <option value="daemonset">DaemonSet</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="workload-name">Name</label>
+                            <input type="text" id="workload-name" name="name" placeholder="workload-name" required>
+                        </div>
+                        <div>
+                            <label for="workload-namespace">Namespace (optional)</label>
+                            <input type="text" id="workload-namespace" name="namespace" placeholder="default">
+                        </div>
+                        <button type="submit" class="btn-icon">⟳ Restart</button>
+                    </div>
+                </form>
+                <div id="workload-result" style="margin-top: 1rem;"></div>
+            </div>
+        </section>
     </main>
 
     <script>
+        // Confirm workload restart
+        function confirmWorkloadRestart(form) {
+            const type = form.querySelector('#workload-type').value;
+            const name = form.querySelector('#workload-name').value;
+            const namespace = form.querySelector('#workload-namespace').value || 'default';
+            return confirm('Are you sure you want to restart ' + type + ' "' + name + '" in namespace "' + namespace + '"?');
+        }
+
         // Theme management
         (function() {
             const THEME_KEY = 'feature-ui-theme';
