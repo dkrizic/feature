@@ -16,4 +16,5 @@ const (
 	AuthEnabled         = "auth-enabled"
 	AuthUsername        = "auth-username"
 	AuthPassword        = "auth-password"
+	AuthSessionTimeout  = "auth-session-timeout"
 )

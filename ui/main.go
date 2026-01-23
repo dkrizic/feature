@@ -113,6 +113,13 @@ func main() {
 						Usage:    "Password for authentication",
 						Sources:  cli.EnvVars("AUTH_PASSWORD"),
 					},
+					&cli.IntFlag{
+						Name:     constant.AuthSessionTimeout,
+						Value:    86400,
+						Category: "authentication",
+						Usage:    "Session timeout in seconds (default: 86400 = 24 hours)",
+						Sources:  cli.EnvVars("AUTH_SESSION_TIMEOUT"),
+					},
 				},
 			},
 		},

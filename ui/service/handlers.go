@@ -166,10 +166,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 			Secure:   secure,
 			SameSite: http.SameSiteStrictMode,
-			MaxAge:   86400, // 24 hours
+			MaxAge:   s.authSessionTimeout,
 		})
 
-		slog.InfoContext(ctx, "User logged in", "username", username)
+		slog.InfoContext(ctx, "User logged in", "username", username, "sessionTimeout", s.authSessionTimeout)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}

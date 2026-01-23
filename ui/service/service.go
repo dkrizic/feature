@@ -26,16 +26,17 @@ import (
 
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
-	address        string
-	templates      *template.Template
-	featureClient  featurev1.FeatureClient
-	metaClient     metav1.MetaClient
-	backendVersion string
-	uiVersion      string
-	httpServer     *http.Server
-	authEnabled    bool
-	authUsername   string
-	authPassword   string
+	address            string
+	templates          *template.Template
+	featureClient      featurev1.FeatureClient
+	metaClient         metav1.MetaClient
+	backendVersion     string
+	uiVersion          string
+	httpServer         *http.Server
+	authEnabled        bool
+	authUsername       string
+	authPassword       string
+	authSessionTimeout int
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -89,14 +90,19 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	authEnabled := cmd.Bool(constant.AuthEnabled)
 	authUsername := cmd.String(constant.AuthUsername)
 	authPassword := cmd.String(constant.AuthPassword)
+	authSessionTimeout := cmd.Int(constant.AuthSessionTimeout)
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "authEnabled", authEnabled)
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "authEnabled", authEnabled, "authSessionTimeout", authSessionTimeout)
 
 	// Validate authentication configuration
 	if authEnabled {
 		if authUsername == "" || authPassword == "" {
 			slog.ErrorContext(ctx, "Authentication is enabled but username or password is not set")
 			return fmt.Errorf("authentication is enabled but username or password is not set")
+		}
+		if authSessionTimeout <= 0 {
+			slog.ErrorContext(ctx, "Authentication session timeout must be greater than 0")
+			return fmt.Errorf("authentication session timeout must be greater than 0")
 		}
 	}
 
@@ -135,15 +141,16 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 
 	// Create server
 	server := &Server{
-		address:        fmt.Sprintf(":%d", port),
-		templates:      templates,
-		featureClient:  featureClient,
-		metaClient:     metaClient,
-		backendVersion: backendVersion,
-		uiVersion:      meta.Version,
-		authEnabled:    authEnabled,
-		authUsername:   authUsername,
-		authPassword:   authPassword,
+		address:            fmt.Sprintf(":%d", port),
+		templates:          templates,
+		featureClient:      featureClient,
+		metaClient:         metaClient,
+		backendVersion:     backendVersion,
+		uiVersion:          meta.Version,
+		authEnabled:        authEnabled,
+		authUsername:       authUsername,
+		authPassword:       authPassword,
+		authSessionTimeout: authSessionTimeout,
 	}
 
 	// Setup HTTP routes
