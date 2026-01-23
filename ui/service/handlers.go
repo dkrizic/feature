@@ -1,12 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"sort"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
+	workloadv1 "github.com/dkrizic/feature/ui/repository/workload/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
@@ -26,6 +28,7 @@ func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST /features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
 	mux.HandleFunc("POST /features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
 	mux.HandleFunc("POST /features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
+	mux.HandleFunc("POST /workload/restart", otelhttp.NewHandler(http.HandlerFunc(s.handleWorkloadRestart), "handleWorkloadRestart").ServeHTTP)
 	mux.HandleFunc("GET /health", s.handleHealth)
 }
 
@@ -225,4 +228,82 @@ func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// handleWorkloadRestart handles workload restart requests
+func (s *Server) handleWorkloadRestart(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleWorkloadRestart")
+	defer span.End()
+
+	slog.InfoContext(ctx, "Handling workload restart request")
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		slog.ErrorContext(ctx, "Failed to parse form", "error", err)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	workloadType := r.FormValue("type")
+	workloadName := r.FormValue("name")
+	namespace := r.FormValue("namespace")
+
+	// Validate inputs
+	if workloadType == "" {
+		slog.ErrorContext(ctx, "Missing workload type parameter")
+		http.Error(w, "Missing workload type parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing workload type parameter")
+		return
+	}
+
+	if workloadName == "" {
+		slog.ErrorContext(ctx, "Missing workload name parameter")
+		http.Error(w, "Missing workload name parameter", http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Missing workload name parameter")
+		return
+	}
+
+	// Map string type to protobuf enum
+	var protoType workloadv1.WorkloadType
+	switch workloadType {
+	case "deployment":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_DEPLOYMENT
+	case "statefulset":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_STATEFULSET
+	case "daemonset":
+		protoType = workloadv1.WorkloadType_WORKLOAD_TYPE_DAEMONSET
+	default:
+		slog.ErrorContext(ctx, "Invalid workload type", "type", workloadType)
+		http.Error(w, fmt.Sprintf("Invalid workload type: %s", workloadType), http.StatusBadRequest)
+		span.SetStatus(codes.Error, "Invalid workload type")
+		return
+	}
+
+	// Call the gRPC backend
+	resp, err := s.workloadClient.RestartWorkload(ctx, &workloadv1.RestartRequest{
+		Type:      protoType,
+		Name:      workloadName,
+		Namespace: namespace,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to restart workload", "type", workloadType, "name", workloadName, "error", err)
+		http.Error(w, fmt.Sprintf("Failed to restart workload: %v", err), http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	if !resp.Success {
+		slog.WarnContext(ctx, "Workload restart unsuccessful", "message", resp.Message)
+		http.Error(w, resp.Message, http.StatusBadRequest)
+		span.SetStatus(codes.Error, resp.Message)
+		return
+	}
+
+	slog.InfoContext(ctx, "Workload restarted successfully", "type", workloadType, "name", workloadName, "namespace", namespace)
+
+	// Return success message
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`<div class="success-message">%s</div>`, resp.Message)))
 }

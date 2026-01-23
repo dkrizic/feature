@@ -15,6 +15,7 @@ import (
 	"github.com/dkrizic/feature/ui/meta"
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
 	metav1 "github.com/dkrizic/feature/ui/repository/meta/v1"
+	workloadv1 "github.com/dkrizic/feature/ui/repository/workload/v1"
 	"github.com/urfave/cli/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -30,6 +31,7 @@ type Server struct {
 	templates      *template.Template
 	featureClient  featurev1.FeatureClient
 	metaClient     metav1.MetaClient
+	workloadClient workloadv1.WorkloadClient
 	backendVersion string
 	uiVersion      string
 	httpServer     *http.Server
@@ -106,6 +108,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	// Initialize gRPC clients
 	featureClient := featurev1.NewFeatureClient(conn)
 	metaClient := metav1.NewMetaClient(conn)
+	workloadClient := workloadv1.NewWorkloadClient(conn)
 
 	// Fetch backend version
 	backendVersion := ""
@@ -125,6 +128,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		templates:      templates,
 		featureClient:  featureClient,
 		metaClient:     metaClient,
+		workloadClient: workloadClient,
 		backendVersion: backendVersion,
 		uiVersion:      meta.Version,
 	}
