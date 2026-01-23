@@ -209,11 +209,15 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear cookie
+	// Determine if connection is secure (HTTPS)
+	secure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secure,
 		MaxAge:   -1, // Delete cookie
 	})
 
