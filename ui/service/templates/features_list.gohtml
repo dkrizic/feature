@@ -109,6 +109,7 @@ function confirmDeleteFeature(key) {
         <tr>
             <td>{{.Key}}</td>
             <td>
+                {{if .Editable}}
                 <form hx-post="{{$.Subpath}}/features/update" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
@@ -119,6 +120,12 @@ function confirmDeleteFeature(key) {
                     <input type="text" name="value" value="{{.Value}}" style="margin: 0; flex: 1 1 auto; min-width: 220px;">
                     <button type="submit" class="secondary btn-icon" style="margin: 0; white-space: nowrap;">⟳ Update</button>
                 </form>
+                {{else}}
+                <div style="margin: 0; display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" value="{{.Value}}" readonly style="margin: 0; flex: 1 1 auto; min-width: 220px; background-color: #f5f5f5; cursor: not-allowed;" title="This field is read-only">
+                    <span style="margin: 0; padding: 0.5rem 1rem; color: #999; font-size: 0.875rem;">🔒 Read-only</span>
+                </div>
+                {{end}}
             </td>
             <td>
                 <form hx-post="{{$.Subpath}}/features/delete" 

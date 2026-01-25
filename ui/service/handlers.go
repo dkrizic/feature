@@ -17,8 +17,9 @@ import (
 
 // Feature represents a feature flag with a key and value.
 type Feature struct {
-	Key   string
-	Value string
+	Key      string
+	Value    string
+	Editable bool
 }
 
 // registerHandlers registers all HTTP handlers on the provided mux.
@@ -107,8 +108,9 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		}
 
 		features = append(features, Feature{
-			Key:   kv.Key,
-			Value: kv.Value,
+			Key:      kv.Key,
+			Value:    kv.Value,
+			Editable: kv.Editable,
 		})
 	}
 
