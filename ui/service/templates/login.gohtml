@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Feature Flags</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        /* Theme variables */
+        :root[data-theme="light"] {
+            --bg-color: #ffffff;
+            --fg-color: #1a1a1a;
+            --card-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --accent-color: #0d6efd;
+            --danger-color: #dc3545;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --fg-color: #f8f9fa;
+            --card-bg: #2d2d2d;
+            --border-color: #495057;
+            --accent-color: #4dabf7;
+            --danger-color: #f07178;
+        }
+
+        body {
+            font-size: 0.875rem;
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--muted-color);
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid var(--danger-color);
+            border-radius: 0.375rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        input {
+            font-size: 0.875rem;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            font-size: 0.875rem;
+        }
+
+        .theme-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .theme-toggle select {
+            min-width: 120px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Feature Flags</h1>
+        <p class="subtitle">Please sign in to continue</p>
+
+        {{if .Error}}
+        <div class="error-message">{{.Error}}</div>
+        {{end}}
+
+        <form method="POST" action="{{.Subpath}}/login">
+            <label for="username">
+                Username
+                <input type="text" id="username" name="username" required autofocus>
+            </label>
+
+            <label for="password">
+                Password
+                <input type="password" id="password" name="password" required>
+            </label>
+
+            <button type="submit">Sign In</button>
+        </form>
+
+        <div class="theme-toggle">
+            <select id="theme-toggle" aria-label="Theme selector">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        // Theme management
+        (function() {
+            const THEME_KEY = 'feature-ui-theme';
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('theme-toggle');
+
+            // Get system theme preference
+            function getSystemTheme() {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            // Apply theme to HTML element
+            function applyTheme(theme) {
+                if (theme === 'system') {
+                    html.setAttribute('data-theme', getSystemTheme());
+                } else {
+                    html.setAttribute('data-theme', theme);
+                }
+            }
+
+            // Load saved theme preference
+            const savedTheme = localStorage.getItem(THEME_KEY) || 'system';
+            themeToggle.value = savedTheme;
+            applyTheme(savedTheme);
+
+            // Handle theme change
+            themeToggle.addEventListener('change', function() {
+                const newTheme = this.value;
+                localStorage.setItem(THEME_KEY, newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Watch for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+                if (themeToggle.value === 'system') {
+                    applyTheme('system');
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

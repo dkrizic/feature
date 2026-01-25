@@ -46,6 +46,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "feature.ui.fullname" . }}
+            {{- if .Values.ui.authentication.enabled }}
+            - secretRef:
+                name: {{ .Release.Name }}
+            {{- end }}
           {{- if .Values.ui.livenessProbe }}
           livenessProbe:
             httpGet:

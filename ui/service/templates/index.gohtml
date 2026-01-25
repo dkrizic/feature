@@ -183,7 +183,10 @@
                     </small>
                 </p>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                {{if .AuthEnabled}}
+                <a href="{{.Subpath}}/logout" style="padding: 0.375rem 0.75rem; font-size: 0.875rem; text-decoration: none;">Logout</a>
+                {{end}}
                 <select class="theme-toggle" id="theme-toggle" aria-label="Theme selector">
                     <option value="system">System</option>
                     <option value="light">Light</option>
