@@ -46,6 +46,7 @@ The following table lists the main configurable parameters of the Feature chart 
 | `service.service.port` | Kubernetes Service port (the port the Service listens on) | `80` |
 | `service.storageType` | Storage backend type (`inmemory` or `configmap`) | `inmemory` |
 | `service.configMap.name` | ConfigMap name (only for configmap storage) | `""` |
+| `service.configMap.editable` | Comma-separated list of editable field names (empty = all editable) | `""` |
 | `service.preset` | Pre-set key-value pairs (comma-separated, format: key=value) | `"COLOR=red,THEME=dark,BOOKING=true"` |
 | `service.rbac.create` | Create RBAC resources for ConfigMap access | `true` |
 | `service.resources` | CPU/Memory resource requests/limits | `{}` |
@@ -117,6 +118,89 @@ service:
     name: feature-flags
   rbac:
     create: true  # Required for ConfigMap access
+```
+
+## Field-Level Access Control
+
+The service supports restricting which feature flags can be modified at runtime. This is useful for production environments where you want to lock down critical configuration while allowing specific flags to be toggled.
+
+### Configuration
+
+```yaml
+service:
+  configMap:
+    editable: "MAINTENANCE_FLOW,DEBUG_MODE,FEATURE_X"
+```
+
+### Behavior
+
+**When `editable` is empty (default):**
+- ✅ All operations allowed: create, update, and delete any field
+
+**When `editable` contains field names:**
+- ❌ **Create**: New fields cannot be created
+- ✅ **Update**: Only listed fields can be updated
+- ❌ **Update**: Non-listed fields are read-only
+- ❌ **Delete**: All fields are protected from deletion
+
+### Example Configuration
+
+```yaml
+service:
+  storageType: inmemory
+  preset: "COLOR=red,THEME=dark,MAINTENANCE_FLOW=disabled,DEBUG_MODE=false"
+  configMap:
+    editable: "MAINTENANCE_FLOW,DEBUG_MODE"
+```
+
+With this configuration:
+- `MAINTENANCE_FLOW` and `DEBUG_MODE` can be updated via UI/CLI/API
+- `COLOR` and `THEME` are read-only (cannot be changed)
+- No new fields can be created
+- No fields can be deleted
+
+### UI Behavior
+
+When editable restrictions are active, the UI will:
+- Show a warning that creating new fields is disabled
+- Display editable fields with Update buttons (green background)
+- Display read-only fields with disabled inputs and 🔒 indicator (orange background)
+- Replace all Delete buttons with "🔒 Protected" indicators
+
+### CLI Behavior
+
+```bash
+# List all features with editable status
+$ feature-cli getall
+key=COLOR value=red editable=read-only
+key=MAINTENANCE_FLOW value=disabled editable=editable
+key=DEBUG_MODE value=false editable=editable
+
+# Try to update read-only field - denied
+$ feature-cli set COLOR blue
+Error: field 'COLOR' is not editable
+
+# Try to create new field - denied
+$ feature-cli set NEW_FIELD value
+Error: creating new fields is not allowed when editable restrictions are active
+
+# Try to delete any field - denied
+$ feature-cli delete MAINTENANCE_FLOW
+Error: deleting fields is not allowed when editable restrictions are active
+
+# Update editable field - success
+$ feature-cli set MAINTENANCE_FLOW enabled
+```
+
+### PreSet Bypass
+
+The `preset` configuration always bypasses editable restrictions, allowing you to establish baseline configurations that cannot be modified later:
+
+```yaml
+service:
+  preset: "CRITICAL_CONFIG=production,APP_VERSION=1.2.3"
+  configMap:
+    editable: ""  # Even if this were set, preset would still work
 ```
 
 ## Endpoint Configuration
