@@ -248,28 +248,41 @@ func TestFeatureService_EditableFields_MultipleAllowed(t *testing.T) {
 }
 
 func TestFeatureService_Set_NonEditableField_Denied(t *testing.T) {
-	fp := &fakePersistence{countResult: 1}
+	fp := &fakePersistence{
+		values: []persistence.KeyValue{
+			{Key: "READONLY_FIELD", Value: "existing"},
+			{Key: "ALLOWED_FIELD", Value: "existing"},
+		},
+		getResult:   persistence.KeyValue{Key: "READONLY_FIELD", Value: "existing"},
+		countResult: 1,
+	}
 	// Only ALLOWED_FIELD can be edited
 	fs, err := NewFeatureService(fp, "ALLOWED_FIELD")
 	assert.NoError(t, err)
 
 	ctx := context.Background()
 	
-	// Try to set a non-editable field
+	// Try to set a non-editable field that exists
 	_, err = fs.Set(ctx, &featurev1.KeyValue{Key: "READONLY_FIELD", Value: "v1"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not editable")
 }
 
 func TestFeatureService_Set_EditableField_Allowed(t *testing.T) {
-	fp := &fakePersistence{countResult: 1}
+	fp := &fakePersistence{
+		values: []persistence.KeyValue{
+			{Key: "ALLOWED_FIELD", Value: "existing"},
+		},
+		getResult:   persistence.KeyValue{Key: "ALLOWED_FIELD", Value: "existing"},
+		countResult: 1,
+	}
 	// Only ALLOWED_FIELD can be edited
 	fs, err := NewFeatureService(fp, "ALLOWED_FIELD")
 	assert.NoError(t, err)
 
 	ctx := context.Background()
 	
-	// Set an editable field should succeed
+	// Set an existing editable field should succeed
 	_, err = fs.Set(ctx, &featurev1.KeyValue{Key: "ALLOWED_FIELD", Value: "v1"})
 	assert.NoError(t, err)
 }
@@ -284,5 +297,65 @@ func TestFeatureService_PreSet_BypassesEditableCheck(t *testing.T) {
 	
 	// PreSet should work even for non-editable fields
 	_, err = fs.PreSet(ctx, &featurev1.KeyValue{Key: "READONLY_FIELD", Value: "v1"})
+	assert.NoError(t, err)
+}
+
+func TestFeatureService_Set_CreateNewField_Denied(t *testing.T) {
+	fp := &fakePersistence{
+		getErr:      errors.New("not found"),
+		countResult: 1,
+	}
+	// Only ALLOWED_FIELD can be edited (creating new fields not allowed)
+	fs, err := NewFeatureService(fp, "ALLOWED_FIELD")
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+	
+	// Try to create a new field when restrictions are active
+	_, err = fs.Set(ctx, &featurev1.KeyValue{Key: "NEW_FIELD", Value: "v1"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "creating new fields is not allowed")
+}
+
+func TestFeatureService_Set_CreateNewField_AllowedWhenNoRestrictions(t *testing.T) {
+	fp := &fakePersistence{
+		getErr:      errors.New("not found"),
+		countResult: 1,
+	}
+	// No restrictions (empty editable list)
+	fs, err := NewFeatureService(fp, "")
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+	
+	// Creating a new field should succeed when no restrictions
+	_, err = fs.Set(ctx, &featurev1.KeyValue{Key: "NEW_FIELD", Value: "v1"})
+	assert.NoError(t, err)
+}
+
+func TestFeatureService_Delete_Denied_WhenRestrictionsActive(t *testing.T) {
+	fp := &fakePersistence{countResult: 0}
+	// Editable fields configured
+	fs, err := NewFeatureService(fp, "ALLOWED_FIELD")
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+	
+	// Deletion should be denied when restrictions are active
+	_, err = fs.Delete(ctx, &featurev1.Key{Name: "ANY_FIELD"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "deleting fields is not allowed")
+}
+
+func TestFeatureService_Delete_Allowed_WhenNoRestrictions(t *testing.T) {
+	fp := &fakePersistence{countResult: 0}
+	// No restrictions
+	fs, err := NewFeatureService(fp, "")
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+	
+	// Deletion should succeed when no restrictions
+	_, err = fs.Delete(ctx, &featurev1.Key{Name: "ANY_FIELD"})
 	assert.NoError(t, err)
 }

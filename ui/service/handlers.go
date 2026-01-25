@@ -119,12 +119,23 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		return features[i].Key < features[j].Key
 	})
 
+	// Check if restrictions are active (at least one field is not editable)
+	restrictionsActive := false
+	for _, f := range features {
+		if !f.Editable {
+			restrictionsActive = true
+			break
+		}
+	}
+
 	data := struct {
-		Features []Feature
-		Subpath  string
+		Features           []Feature
+		Subpath            string
+		RestrictionsActive bool
 	}{
-		Features: features,
-		Subpath:  s.subpath,
+		Features:           features,
+		Subpath:            s.subpath,
+		RestrictionsActive: restrictionsActive,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "features_list.gohtml", data); err != nil {

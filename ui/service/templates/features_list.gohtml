@@ -2,6 +2,11 @@
     <header>
         <h3>Create New Feature Flag</h3>
     </header>
+    {{if .RestrictionsActive}}
+    <div style="padding: 1rem; background-color: #fff8dc; border: 1px solid #ffa500; border-radius: 4px;">
+        <p style="margin: 0; color: #666;">⚠️ Creating new feature flags is disabled when editable field restrictions are active.</p>
+    </div>
+    {{else}}
     <form hx-post="{{.Subpath}}/features/create" 
           hx-target="#feature-list" 
           hx-swap="innerHTML"
@@ -20,6 +25,7 @@
             <button type="submit" class="btn-icon">＋ Create</button>
         </div>
     </form>
+    {{end}}
 </article>
 
 <script>
@@ -128,6 +134,9 @@ function confirmDeleteFeature(key) {
                 {{end}}
             </td>
             <td>
+                {{if $.RestrictionsActive}}
+                <span style="color: #999; font-size: 0.875rem;">🔒 Protected</span>
+                {{else}}
                 <form hx-post="{{$.Subpath}}/features/delete" 
                       hx-target="#feature-list" 
                       hx-swap="innerHTML"
@@ -136,6 +145,7 @@ function confirmDeleteFeature(key) {
                     <input type="hidden" name="key" value="{{.Key}}">
                     <button type="submit" class="secondary btn-icon" style="margin: 0;">🗑 Delete</button>
                 </form>
+                {{end}}
             </td>
         </tr>
         {{end}}

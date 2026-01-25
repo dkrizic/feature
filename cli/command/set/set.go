@@ -35,8 +35,8 @@ func Set(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok && st.Code() == codes.PermissionDenied {
-			slog.Warn("Field is not editable", "key", key, "error", st.Message())
-			return fmt.Errorf("field '%s' is not editable: %s", key, st.Message())
+			slog.Warn("Permission denied", "key", key, "error", st.Message())
+			return fmt.Errorf("%s", st.Message())
 		}
 	}
 	

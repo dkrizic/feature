@@ -118,10 +118,33 @@ func (fs *FeatureService) Set(ctx context.Context, kv *featurev1.KeyValue) (*emp
 	ctx, span := otel.Tracer("feature/service").Start(ctx, "Set")
 	defer span.End()
 
-	// Check if the field is editable
-	if !fs.isEditable(kv.Key) {
-		slog.WarnContext(ctx, "Attempt to set non-editable field", "key", kv.Key)
-		return nil, status.Errorf(codes.PermissionDenied, "field '%s' is not editable", kv.Key)
+	// If editable fields are configured (not empty), additional restrictions apply
+	if len(fs.editableFields) > 0 {
+		// Check if the field already exists by getting all fields
+		allFields, err := fs.persistence.GetAll(ctx)
+		if err != nil {
+			return nil, err
+		}
+		
+		fieldExists := false
+		for _, field := range allFields {
+			if field.Key == kv.Key {
+				fieldExists = true
+				break
+			}
+		}
+		
+		// If field doesn't exist, creating new fields is not allowed
+		if !fieldExists {
+			slog.WarnContext(ctx, "Attempt to create new field when editable restrictions are active", "key", kv.Key)
+			return nil, status.Errorf(codes.PermissionDenied, "creating new fields is not allowed when editable restrictions are active")
+		}
+		
+		// Check if the existing field is editable
+		if !fs.isEditable(kv.Key) {
+			slog.WarnContext(ctx, "Attempt to set non-editable field", "key", kv.Key)
+			return nil, status.Errorf(codes.PermissionDenied, "field '%s' is not editable", kv.Key)
+		}
 	}
 
 	err := fs.persistence.Set(ctx, persistence.KeyValue{
@@ -164,6 +187,12 @@ func (fs *FeatureService) Get(ctx context.Context, kv *featurev1.Key) (*featurev
 func (fs *FeatureService) Delete(ctx context.Context, kv *featurev1.Key) (*emptypb.Empty, error) {
 	ctx, span := otel.Tracer("feature/service").Start(ctx, "Delete")
 	defer span.End()
+
+	// If editable fields are configured (not empty), deletion is not allowed
+	if len(fs.editableFields) > 0 {
+		slog.WarnContext(ctx, "Attempt to delete field when editable restrictions are active", "key", kv.Name)
+		return nil, status.Errorf(codes.PermissionDenied, "deleting fields is not allowed when editable restrictions are active")
+	}
 
 	err := fs.persistence.Delete(ctx, kv.Name)
 	if err != nil {
