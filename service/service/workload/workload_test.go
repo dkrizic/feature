@@ -8,15 +8,15 @@ workloadv1 "github.com/dkrizic/feature/service/service/workload/v1"
 
 // TestWorkloadServiceCreation tests that we can create a workload service
 func TestWorkloadServiceCreation(t *testing.T) {
-// When running outside of a Kubernetes cluster, this should fail
-_, err := NewWorkloadService("default")
-if err == nil {
-t.Skip("Skipping test - running inside Kubernetes cluster")
-}
-// Expected to fail when not in cluster
-if err == nil {
-t.Error("Expected error when creating service outside cluster, got nil")
-}
+	// When running outside of a Kubernetes cluster, this should fail
+	_, err := NewWorkloadService("default", false, workloadv1.WorkloadType_WORKLOAD_TYPE_DEPLOYMENT, "test")
+	if err == nil {
+		t.Skip("Skipping test - running inside Kubernetes cluster")
+	}
+	// Expected to fail when not in cluster
+	if err == nil {
+		t.Error("Expected error when creating service outside cluster, got nil")
+	}
 }
 
 // TestWorkloadTypeEnum tests that workload types are correctly defined
