@@ -26,4 +26,5 @@ const (
 	RestartEnabled             = "restart-enabled"
 	RestartType                = "restart-type"
 	RestartName                = "restart-name"
+	Editable                   = "editable"
 )

@@ -114,6 +114,7 @@ type KeyValue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Editable      bool                   `protobuf:"varint,3,opt,name=editable,proto3" json:"editable,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,6 +163,13 @@ func (x *KeyValue) GetValue() string {
 	return ""
 }
 
+func (x *KeyValue) GetEditable() bool {
+	if x != nil {
+		return x.Editable
+	}
+	return false
+}
+
 var File_feature_proto protoreflect.FileDescriptor
 
 const file_feature_proto_rawDesc = "" +
@@ -171,10 +179,11 @@ const file_feature_proto_rawDesc = "" +
 	"\x03Key\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x1b\n" +
 	"\x05Value\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"2\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"N\n" +
 	"\bKeyValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value2\x8e\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\x12\x1a\n" +
+	"\beditable\x18\x03 \x01(\bR\beditable2\x8e\x02\n" +
 	"\aFeature\x128\n" +
 	"\x06GetAll\x12\x16.google.protobuf.Empty\x1a\x14.feature.v1.KeyValue0\x01\x126\n" +
 	"\x06PreSet\x12\x14.feature.v1.KeyValue\x1a\x16.google.protobuf.Empty\x123\n" +

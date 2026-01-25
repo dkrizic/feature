@@ -17,6 +17,7 @@ message Value {
 message KeyValue {
   string key = 1;
   string value = 2;
+  bool editable = 3;
 }
 
 service Feature {
