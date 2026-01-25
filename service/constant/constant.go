@@ -10,7 +10,7 @@ const (
 	LogLevelWarn               = "warn"
 	LogLevelError              = "error"
 	Port                       = "port"
-	OpenTelemetryEnabled       = "pentelemetry-enabled"
+	OpenTelemetryEnabled       = "opentelemetry-enabled"
 	OpenTelemetryEndpoint      = "opentelemetry-endpoint"
 	StorageType                = "storage-type"
 	ConfigMapName              = "configmap-name"

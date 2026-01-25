@@ -10,6 +10,6 @@ const (
 	LogLevelWarn          = "warn"
 	LogLevelError         = "error"
 	Endpoint              = "endpoint"
-	OpenTelemetryEnabled  = "pentelemetry-enabled"
+	OpenTelemetryEnabled  = "opentelemetry-enabled"
 	OpenTelemetryEndpoint = "opentelemetry-endpoint"
 )

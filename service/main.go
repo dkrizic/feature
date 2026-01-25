@@ -75,14 +75,14 @@ func main() {
 						Value:    false,
 						Category: "observability",
 						Usage:    "Enable OpenTelemetry tracing",
-						Sources:  cli.EnvVars("ENABLE_OPENTELEMETRY"),
+						Sources:  cli.EnvVars("OPENTELEMETRY_ENABLED"),
 					},
 					&cli.StringFlag{
 						Name:     constant.OpenTelemetryEndpoint,
 						Value:    "",
 						Category: "observability",
 						Usage:    "OTLP endpoint for OpenTelemetry",
-						Sources:  cli.EnvVars("OTLP_ENDPOINT"),
+						Sources:  cli.EnvVars("OPENTELEMETRY_ENDPOINT"),
 					},
 					&cli.StringFlag{
 						Name:    constant.StorageType,
