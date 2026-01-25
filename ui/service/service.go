@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -28,18 +29,23 @@ import (
 
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
-	address        string
-	subpath        string
-	templates      *template.Template
-	featureClient  featurev1.FeatureClient
-	metaClient     metav1.MetaClient
-	workloadClient workloadv1.WorkloadClient
-	backendVersion string
-	uiVersion      string
-	httpServer     *http.Server
-	restartEnabled bool
-	restartName    string
-	restartType    string
+	address              string
+	subpath              string
+	templates            *template.Template
+	featureClient        featurev1.FeatureClient
+	metaClient           metav1.MetaClient
+	workloadClient       workloadv1.WorkloadClient
+	backendVersion       string
+	uiVersion            string
+	httpServer           *http.Server
+	restartEnabled       bool
+	restartName          string
+	restartType          string
+	authEnabled          bool
+	authUsername         string
+	authPassword         string
+	sessionsMutex        sync.RWMutex
+	authenticatedSessions map[string]bool
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -91,6 +97,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
 	subpath := cmd.String(constant.Subpath)
+	authEnabled := cmd.Bool(constant.AuthenticationEnabled)
+	authUsername := cmd.String(constant.AuthenticationUsername)
+	authPassword := cmd.String(constant.AuthenticationPassword)
 
 	// Normalize subpath: ensure it starts with / and doesn't end with /
 	if subpath != "" {
@@ -100,7 +109,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		subpath = strings.TrimSuffix(subpath, "/")
 	}
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath)
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath, "authEnabled", authEnabled)
 
 	// Parse templates
 	templates := ParseTemplates(ctx)
@@ -155,17 +164,21 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 
 	// Create server
 	server := &Server{
-		address:        fmt.Sprintf(":%d", port),
-		subpath:        subpath,
-		templates:      templates,
-		featureClient:  featureClient,
-		metaClient:     metaClient,
-		workloadClient: workloadClient,
-		backendVersion: backendVersion,
-		uiVersion:      meta.Version,
-		restartEnabled: restartEnabled,
-		restartName:    restartName,
-		restartType:    restartType,
+		address:               fmt.Sprintf(":%d", port),
+		subpath:               subpath,
+		templates:             templates,
+		featureClient:         featureClient,
+		metaClient:            metaClient,
+		workloadClient:        workloadClient,
+		backendVersion:        backendVersion,
+		uiVersion:             meta.Version,
+		restartEnabled:        restartEnabled,
+		restartName:           restartName,
+		restartType:           restartType,
+		authEnabled:           authEnabled,
+		authUsername:          authUsername,
+		authPassword:          authPassword,
+		authenticatedSessions: make(map[string]bool),
 	}
 
 	// Setup HTTP routes

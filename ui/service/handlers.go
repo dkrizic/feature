@@ -25,12 +25,21 @@ type Feature struct {
 func (s *Server) registerHandlers(mux *http.ServeMux) {
 
 	prefix := s.subpath
-	mux.HandleFunc("GET "+prefix+"/", otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP)
-	mux.HandleFunc("GET "+prefix+"/features/list", otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP)
-	mux.HandleFunc("POST "+prefix+"/features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
-	mux.HandleFunc("POST "+prefix+"/features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
-	mux.HandleFunc("POST "+prefix+"/features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
-	mux.HandleFunc("POST "+prefix+"/restart", otelhttp.NewHandler(http.HandlerFunc(s.handleRestart), "handleRestart").ServeHTTP)
+	
+	// Login and logout routes (no auth required)
+	mux.HandleFunc("GET "+prefix+"/login", s.handleLogin)
+	mux.HandleFunc("POST "+prefix+"/login", s.handleLogin)
+	mux.HandleFunc("GET "+prefix+"/logout", s.handleLogout)
+	
+	// Protected routes (require auth if enabled)
+	mux.HandleFunc("GET "+prefix+"/", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleIndex), "handleIndex").ServeHTTP))
+	mux.HandleFunc("GET "+prefix+"/features/list", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeaturesList), "handleFeaturesList").ServeHTTP))
+	mux.HandleFunc("POST "+prefix+"/features/create", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP))
+	mux.HandleFunc("POST "+prefix+"/features/update", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP))
+	mux.HandleFunc("POST "+prefix+"/features/delete", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP))
+	mux.HandleFunc("POST "+prefix+"/restart", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleRestart), "handleRestart").ServeHTTP))
+	
+	// Health check (no auth required)
 	mux.HandleFunc("GET "+prefix+"/health", s.handleHealth)
 }
 
@@ -46,6 +55,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		RestartEnabled bool
 		RestartName    string
 		RestartType    string
+		AuthEnabled    bool
 	}{
 		UIVersion:      s.uiVersion,
 		BackendVersion: s.backendVersion,
@@ -53,6 +63,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		RestartEnabled: s.restartEnabled,
 		RestartName:    s.restartName,
 		RestartType:    s.restartType,
+		AuthEnabled:    s.authEnabled,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "index.gohtml", data); err != nil {
