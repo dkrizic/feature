@@ -327,6 +327,14 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 
 	slog.InfoContext(ctx, "Handling restart request for configured service")
 
+	// Validate that restart is enabled
+	if !s.restartEnabled {
+		slog.WarnContext(ctx, "Restart feature is not enabled")
+		http.Error(w, "Restart feature is not enabled", http.StatusForbidden)
+		span.SetStatus(codes.Error, "Restart feature is not enabled")
+		return
+	}
+
 	// Call the gRPC backend
 	resp, err := s.workloadClient.Restart(ctx, &workloadv1.SimpleRestartRequest{})
 	if err != nil {

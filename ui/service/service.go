@@ -125,8 +125,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	workloadClient := workloadv1.NewWorkloadClient(conn)
 
 	// Fetch backend version
+	const grpcCallTimeout = 5 * time.Second
 	backendVersion := ""
-	metaCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	metaCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
 	defer cancel()
 	metaResp, err := metaClient.Meta(metaCtx, &metav1.MetaRequest{})
 	if err != nil {
@@ -140,7 +141,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	restartEnabled := false
 	restartName := ""
 	restartType := ""
-	infoCtx, infoCancel := context.WithTimeout(ctx, 5*time.Second)
+	infoCtx, infoCancel := context.WithTimeout(ctx, grpcCallTimeout)
 	defer infoCancel()
 	infoResp, err := workloadClient.Info(infoCtx, &workloadv1.InfoRequest{})
 	if err != nil {

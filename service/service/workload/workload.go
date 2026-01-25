@@ -209,6 +209,6 @@ func (s *WorkloadService) Restart(ctx context.Context, req *workloadv1.SimpleRes
 	return s.RestartWorkload(ctx, &workloadv1.RestartRequest{
 		Type:      s.restartType,
 		Name:      s.restartName,
-		Namespace: "", // Use service namespace
+		Namespace: "", // Empty namespace uses the service's configured namespace
 	})
 }
