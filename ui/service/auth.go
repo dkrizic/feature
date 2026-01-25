@@ -99,6 +99,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 			s.sessionsMutex.Unlock()
 
 			// Set cookie
+			// Note: Secure flag is not set to support both HTTP and HTTPS deployments.
+			// In production, use HTTPS and consider adding Secure: true via reverse proxy or ingress.
 			http.SetCookie(w, &http.Cookie{
 				Name:     constant.SessionCookieName,
 				Value:    sessionID,
@@ -165,6 +167,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear cookie
+	// Note: Secure flag is not set to support both HTTP and HTTPS deployments.
 	http.SetCookie(w, &http.Cookie{
 		Name:     constant.SessionCookieName,
 		Value:    "",

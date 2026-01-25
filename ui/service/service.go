@@ -45,6 +45,9 @@ type Server struct {
 	authUsername         string
 	authPassword         string
 	sessionsMutex        sync.RWMutex
+	// Note: In-memory session storage. Sessions are not shared across instances
+	// and will be lost on server restart. For production multi-instance deployments,
+	// consider implementing a persistent session store (e.g., Redis).
 	authenticatedSessions map[string]bool
 }
 
