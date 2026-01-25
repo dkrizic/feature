@@ -179,6 +179,13 @@ func main() {
 						Category: "restart",
 						Sources:  cli.EnvVars("RESTART_NAME"),
 					},
+					&cli.StringFlag{
+						Name:     constant.Editable,
+						Usage:    "Comma-separated list of editable field names (empty means all fields are editable)",
+						Value:    "",
+						Category: "service",
+						Sources:  cli.EnvVars("EDITABLE"),
+					},
 				},
 			},
 		},

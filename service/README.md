@@ -198,6 +198,52 @@ feature service \
 PRESET=featureA=enabled,featureB=disabled feature service
 ```
 
+##### `--editable`
+
+- **Flag name:** `editable`
+- **Type:** string
+- **Env var:** `EDITABLE`
+- **Default:** `""` (empty - all fields editable)
+- **Category:** `service`
+- **Description:** Comma-separated list of field names that can be edited. When set, enforces field-level access control:
+  - Only listed fields can be updated
+  - New fields cannot be created
+  - No fields can be deleted (all fields protected)
+  - Non-listed fields become read-only
+  - Empty value means all operations are allowed
+
+**Behavior:**
+
+When `EDITABLE=""` (default):
+- ✅ Create new fields
+- ✅ Update any field
+- ✅ Delete any field
+
+When `EDITABLE="FIELD1,FIELD2"`:
+- ❌ Creating new fields blocked
+- ✅ Update FIELD1 and FIELD2 only
+- ❌ Update other fields (read-only)
+- ❌ Delete any field (all protected)
+
+**Note:** The `--preset` flag always bypasses editable restrictions, allowing baseline configuration to be established.
+
+Examples:
+
+```bash
+# Allow editing only MAINTENANCE_FLOW and DEBUG_MODE
+feature service --editable "MAINTENANCE_FLOW,DEBUG_MODE"
+
+# Environment variable
+EDITABLE=MAINTENANCE_FLOW,DEBUG_MODE feature service
+
+# Combined with preset (preset always works regardless of editable)
+feature service \
+  --preset COLOR=red \
+  --preset THEME=dark \
+  --preset MAINTENANCE_FLOW=disabled \
+  --editable "MAINTENANCE_FLOW"
+```
+
 ---
 
 ## Logging Behavior
@@ -259,8 +305,72 @@ feature \
   --preset featureB=disabled
 ```
 
+Use field-level access control to restrict editing:
+
+```bash
+# Set up baseline configuration with only MAINTENANCE_FLOW editable
+feature service \
+  --preset COLOR=red \
+  --preset THEME=dark \
+  --preset MAINTENANCE_FLOW=disabled \
+  --preset DEBUG_MODE=false \
+  --editable "MAINTENANCE_FLOW,DEBUG_MODE"
+
+# In this configuration:
+# - COLOR and THEME cannot be modified (read-only)
+# - MAINTENANCE_FLOW and DEBUG_MODE can be updated
+# - No new fields can be created
+# - No fields can be deleted
+```
+
 Print version information only:
 
 ```bash
 feature version
+```
+
+---
+
+## Field-Level Access Control
+
+The `--editable` flag enables fine-grained control over which feature flags can be modified at runtime.
+
+### Use Cases
+
+1. **Production Environments**: Lock down critical configuration values while allowing operational toggles to be changed
+2. **Multi-Tenant Scenarios**: Provide different access levels for different teams
+3. **Configuration Management**: Prevent accidental deletion or creation of flags
+4. **Immutable Baselines**: Use `--preset` to establish configurations that cannot be changed later
+
+### API Behavior
+
+When editable restrictions are active:
+
+- **GetAll** RPC: Returns an `editable: bool` field for each feature flag indicating whether it can be modified
+- **Set** RPC: Returns `PermissionDenied` error for:
+  - Non-editable fields: `"field 'FIELD_NAME' is not editable"`
+  - New field creation: `"creating new fields is not allowed when editable restrictions are active"`
+- **Delete** RPC: Returns `PermissionDenied` error: `"deleting fields is not allowed when editable restrictions are active"`
+- **PreSet** RPC: Always succeeds regardless of editable configuration (for initial setup)
+
+### Example Error Messages
+
+```bash
+# Trying to update a read-only field
+$ grpcurl -d '{"key":"COLOR","value":"blue"}' localhost:8000 feature.v1.Feature/Set
+ERROR:
+  Code: PermissionDenied
+  Message: field 'COLOR' is not editable
+
+# Trying to create a new field
+$ grpcurl -d '{"key":"NEW","value":"value"}' localhost:8000 feature.v1.Feature/Set
+ERROR:
+  Code: PermissionDenied
+  Message: creating new fields is not allowed when editable restrictions are active
+
+# Trying to delete a field
+$ grpcurl -d '{"name":"MAINTENANCE_FLOW"}' localhost:8000 feature.v1.Feature/Delete
+ERROR:
+  Code: PermissionDenied
+  Message: deleting fields is not allowed when editable restrictions are active
 ```

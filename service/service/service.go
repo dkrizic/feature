@@ -135,8 +135,11 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
+	// Get editable fields configuration
+	editableFields := cmd.String(constant.Editable)
+
 	// feature
-	featureService, err := feature.NewFeatureService(pers)
+	featureService, err := feature.NewFeatureService(pers, editableFields)
 	if err != nil {
 		slog.Error("Failed to create feature service", "error", err)
 		return fmt.Errorf("failed to create feature service: %w", err)

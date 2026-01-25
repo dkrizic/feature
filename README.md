@@ -48,11 +48,51 @@ graph TD
 * REST API for frontend consumption
 * Persistence layer with in-memory and Kubernetes ConfigMap backends
 * Command Line Interface (CLI) for managing feature flags
+* **Field-level access control** with editable field restrictions
 * Workload restart functionality for Deployments, StatefulSets, and DaemonSets
 * Designed for Kubernetes environments
 * OpenTelemetry instrumentation for observability
 * Configurable via environment variables and ConfigMaps
 * Lightweight and easy to deploy
+
+## Field-Level Access Control
+
+The service supports restricting which feature flags can be modified at runtime through the `EDITABLE` configuration.
+
+### Configuration
+
+**Helm Chart:**
+```yaml
+service:
+  configMap:
+    editable: "MAINTENANCE_FLOW,DEBUG_MODE"
+```
+
+**Environment Variable:**
+```bash
+EDITABLE=MAINTENANCE_FLOW,DEBUG_MODE
+```
+
+### Behavior
+
+**When `EDITABLE=""` (default - no restrictions):**
+- ✅ Create new fields
+- ✅ Update any field
+- ✅ Delete any field
+
+**When `EDITABLE="FIELD1,FIELD2"` (restrictions active):**
+- ❌ Creating new fields is **not allowed**
+- ✅ Update FIELD1 and FIELD2 only
+- ❌ Update other fields (read-only)
+- ❌ Delete **any** field (all protected)
+
+### Use Cases
+
+This feature is useful for:
+- **Production environments**: Lock down critical feature flags while allowing specific flags to be toggled
+- **Multi-tenant scenarios**: Provide different access levels for different teams
+- **Configuration management**: Prevent accidental deletion or creation of flags in controlled environments
+- **PreSet initialization**: Use `PreSet` to establish immutable baseline configurations
 
 ## ConfigMap Usage and Workload Restarts
 

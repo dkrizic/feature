@@ -3,28 +3,68 @@ package feature
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/dkrizic/feature/service/service/feature/v1"
 	"github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/telemetry/localmetrics"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type FeatureService struct {
 	featurev1.UnimplementedFeatureServer
-	persistence persistence.Persistence
+	persistence    persistence.Persistence
+	editableFields map[string]bool // map of editable field names, empty means all are editable
 }
 
-func NewFeatureService(p persistence.Persistence) (*FeatureService, error) {
+// parseEditableFields parses a comma-separated list of field names and returns a map
+func parseEditableFields(editableFieldsStr string) map[string]bool {
+	editableFields := make(map[string]bool)
+	if editableFieldsStr != "" {
+		fields := strings.Split(editableFieldsStr, ",")
+		for _, field := range fields {
+			field = strings.TrimSpace(field)
+			if field != "" {
+				editableFields[field] = true
+			}
+		}
+	}
+	return editableFields
+}
+
+func NewFeatureService(p persistence.Persistence, editableFieldsStr string) (*FeatureService, error) {
 	err := localmetrics.New()
 	if err != nil {
 		slog.Error("Failed to initialize local metrics", "error", err)
 	}
+
+	// Parse editable fields
+	editableFields := parseEditableFields(editableFieldsStr)
+	
+	if len(editableFields) > 0 {
+		slog.Info("Editable fields configured", "fields", editableFieldsStr, "count", len(editableFields))
+	} else {
+		slog.Info("All fields are editable (no restrictions)")
+	}
+
 	return &FeatureService{
-		persistence: p,
+		persistence:    p,
+		editableFields: editableFields,
 	}, nil
+}
+
+// isEditable checks if a field is editable
+func (fs *FeatureService) isEditable(key string) bool {
+	// If editableFields is empty, all fields are editable
+	if len(fs.editableFields) == 0 {
+		return true
+	}
+	// Otherwise, check if the key is in the editable list
+	return fs.editableFields[key]
 }
 
 func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreamingServer[featurev1.KeyValue]) error {
@@ -37,8 +77,9 @@ func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreami
 	}
 	for _, kv := range values {
 		err := stream.Send(&featurev1.KeyValue{
-			Key:   kv.Key,
-			Value: kv.Value,
+			Key:      kv.Key,
+			Value:    kv.Value,
+			Editable: fs.isEditable(kv.Key),
 		})
 		if err != nil {
 			return err
@@ -76,6 +117,35 @@ func (fs *FeatureService) PreSet(ctx context.Context, kv *featurev1.KeyValue) (*
 func (fs *FeatureService) Set(ctx context.Context, kv *featurev1.KeyValue) (*emptypb.Empty, error) {
 	ctx, span := otel.Tracer("feature/service").Start(ctx, "Set")
 	defer span.End()
+
+	// If editable fields are configured (not empty), additional restrictions apply
+	if len(fs.editableFields) > 0 {
+		// Check if the field already exists by getting all fields
+		allFields, err := fs.persistence.GetAll(ctx)
+		if err != nil {
+			return nil, err
+		}
+		
+		fieldExists := false
+		for _, field := range allFields {
+			if field.Key == kv.Key {
+				fieldExists = true
+				break
+			}
+		}
+		
+		// If field doesn't exist, creating new fields is not allowed
+		if !fieldExists {
+			slog.WarnContext(ctx, "Attempt to create new field when editable restrictions are active", "key", kv.Key)
+			return nil, status.Errorf(codes.PermissionDenied, "creating new fields is not allowed when editable restrictions are active")
+		}
+		
+		// Check if the existing field is editable
+		if !fs.isEditable(kv.Key) {
+			slog.WarnContext(ctx, "Attempt to set non-editable field", "key", kv.Key)
+			return nil, status.Errorf(codes.PermissionDenied, "field '%s' is not editable", kv.Key)
+		}
+	}
 
 	err := fs.persistence.Set(ctx, persistence.KeyValue{
 		Key:   kv.Key,
@@ -117,6 +187,12 @@ func (fs *FeatureService) Get(ctx context.Context, kv *featurev1.Key) (*featurev
 func (fs *FeatureService) Delete(ctx context.Context, kv *featurev1.Key) (*emptypb.Empty, error) {
 	ctx, span := otel.Tracer("feature/service").Start(ctx, "Delete")
 	defer span.End()
+
+	// If editable fields are configured (not empty), deletion is not allowed
+	if len(fs.editableFields) > 0 {
+		slog.WarnContext(ctx, "Attempt to delete field when editable restrictions are active", "key", kv.Name)
+		return nil, status.Errorf(codes.PermissionDenied, "deleting fields is not allowed when editable restrictions are active")
+	}
 
 	err := fs.persistence.Delete(ctx, kv.Name)
 	if err != nil {

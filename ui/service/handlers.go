@@ -17,8 +17,9 @@ import (
 
 // Feature represents a feature flag with a key and value.
 type Feature struct {
-	Key   string
-	Value string
+	Key      string
+	Value    string
+	Editable bool
 }
 
 // registerHandlers registers all HTTP handlers on the provided mux.
@@ -107,8 +108,9 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		}
 
 		features = append(features, Feature{
-			Key:   kv.Key,
-			Value: kv.Value,
+			Key:      kv.Key,
+			Value:    kv.Value,
+			Editable: kv.Editable,
 		})
 	}
 
@@ -117,12 +119,23 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 		return features[i].Key < features[j].Key
 	})
 
+	// Check if restrictions are active (at least one field is not editable)
+	restrictionsActive := false
+	for _, f := range features {
+		if !f.Editable {
+			restrictionsActive = true
+			break
+		}
+	}
+
 	data := struct {
-		Features []Feature
-		Subpath  string
+		Features           []Feature
+		Subpath            string
+		RestrictionsActive bool
 	}{
-		Features: features,
-		Subpath:  s.subpath,
+		Features:           features,
+		Subpath:            s.subpath,
+		RestrictionsActive: restrictionsActive,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "features_list.gohtml", data); err != nil {

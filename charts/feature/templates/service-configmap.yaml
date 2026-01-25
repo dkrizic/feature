@@ -18,4 +18,5 @@ data:
   RESTART_ENABLED: {{ ternary "true" "false" .Values.service.restart.enabled | quote }}
   RESTART_TYPE: {{ .Values.service.restart.type | quote }}
   RESTART_NAME: {{ .Values.service.restart.name | quote }}
+  EDITABLE: {{ .Values.service.configMap.editable | quote }}
 {{- end }}

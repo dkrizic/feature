@@ -33,6 +33,8 @@ service:
   # ConfigMap data, only used if storageType is "configmap"
   configMap:
     name: ""
+    # Comma-separated list of editable field names (empty means all fields are editable)
+    editable: ""
   # Pre-set key-value pairs in the format key=value (comma-separated)
   preset: "COLOR=red,THEME=dark,BOOKING=true"
   serviceAccount:
