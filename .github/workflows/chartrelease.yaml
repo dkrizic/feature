@@ -36,7 +36,33 @@ jobs:
       - name: Install yq
         uses: mikefarah/yq@v4.50.1
 
+      - name: Validate Helm chart with lint
+        run: |
+          echo "Running helm lint on charts/feature..."
+          helm lint charts/feature
+
+      - name: Validate Helm chart with template
+        run: |
+          echo "Running helm template on charts/feature..."
+          helm template test-release charts/feature
+
+      - name: Validation successful
+        run: |
+          echo "✅ Helm chart validation completed successfully!"
+
+      - name: Check if this is a tag build
+        id: check_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "is_tag=true" >> $GITHUB_OUTPUT
+            echo "🏷️  This is a TAG build - will publish to gh-pages"
+          else
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+            echo "📋 This is a validation-only build - will NOT publish to gh-pages"
+          fi
+
       - name: Prepare gh-pages branch
+        if: steps.check_tag.outputs.is_tag == 'true'
         run: |
           # Fetch gh-pages branch if it exists
           git fetch origin gh-pages:gh-pages || echo "gh-pages branch does not exist yet"
@@ -57,6 +83,7 @@ jobs:
       # When triggered by a tag (e.g., 1.2.3), this sets both version and appVersion to that tag
       # For non-tag builds (e.g., main branch), it sets both to the branch name
       - name: Update Chart version
+        if: steps.check_tag.outputs.is_tag == 'true'
         env:
           CHART_VERSION: ${{ github.ref_name }}
         run: |
@@ -68,16 +95,19 @@ jobs:
           cat charts/feature/Chart.yaml
 
       - name: Package Helm chart
+        if: steps.check_tag.outputs.is_tag == 'true'
         run: |
           helm package charts/feature -d gh-pages-worktree
 
       - name: Update Helm repository index
+        if: steps.check_tag.outputs.is_tag == 'true'
         run: |
           cd gh-pages-worktree
           helm repo index . --url https://dkrizic.github.io/feature
           cd ..
 
       - name: Commit and push to gh-pages
+        if: steps.check_tag.outputs.is_tag == 'true'
         run: |
           cd gh-pages-worktree
           git add .
