@@ -28,18 +28,18 @@ import (
 
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
-	address         string
-	subpath         string
-	templates       *template.Template
-	featureClient   featurev1.FeatureClient
-	metaClient      metav1.MetaClient
-	workloadClient  workloadv1.WorkloadClient
-	backendVersion  string
-	uiVersion       string
-	httpServer      *http.Server
-	restartEnabled  bool
-	restartName     string
-	restartType     string
+	address        string
+	subpath        string
+	templates      *template.Template
+	featureClient  featurev1.FeatureClient
+	metaClient     metav1.MetaClient
+	workloadClient workloadv1.WorkloadClient
+	backendVersion string
+	uiVersion      string
+	httpServer     *http.Server
+	restartEnabled bool
+	restartName    string
+	restartType    string
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -47,8 +47,8 @@ var otelShutdown func(ctx context.Context) error = nil
 func Before(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	slog.InfoContext(ctx, "Starting UI", "version", metaversion.Version)
 
-	otelEnabled := cmd.Bool(constant.EnableOpenTelemetry)
-	otelEndpoint := cmd.String(constant.OTLPEndpoint)
+	otelEnabled := cmd.Bool(constant.OpenTelemetryEnabled)
+	otelEndpoint := cmd.String(constant.OpenTelemetryEndpoint)
 
 	if otelEnabled {
 		slog.InfoContext(ctx, "OpenTelemetry enabled", "endpoint", otelEndpoint)
