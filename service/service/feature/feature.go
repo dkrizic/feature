@@ -21,13 +21,8 @@ type FeatureService struct {
 	editableFields map[string]bool // map of editable field names, empty means all are editable
 }
 
-func NewFeatureService(p persistence.Persistence, editableFieldsStr string) (*FeatureService, error) {
-	err := localmetrics.New()
-	if err != nil {
-		slog.Error("Failed to initialize local metrics", "error", err)
-	}
-
-	// Parse editable fields
+// parseEditableFields parses a comma-separated list of field names and returns a map
+func parseEditableFields(editableFieldsStr string) map[string]bool {
 	editableFields := make(map[string]bool)
 	if editableFieldsStr != "" {
 		fields := strings.Split(editableFieldsStr, ",")
@@ -37,6 +32,20 @@ func NewFeatureService(p persistence.Persistence, editableFieldsStr string) (*Fe
 				editableFields[field] = true
 			}
 		}
+	}
+	return editableFields
+}
+
+func NewFeatureService(p persistence.Persistence, editableFieldsStr string) (*FeatureService, error) {
+	err := localmetrics.New()
+	if err != nil {
+		slog.Error("Failed to initialize local metrics", "error", err)
+	}
+
+	// Parse editable fields
+	editableFields := parseEditableFields(editableFieldsStr)
+	
+	if len(editableFields) > 0 {
 		slog.Info("Editable fields configured", "fields", editableFieldsStr, "count", len(editableFields))
 	} else {
 		slog.Info("All fields are editable (no restrictions)")

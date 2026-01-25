@@ -29,7 +29,11 @@ func GetAll(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			break
 		}
-		slog.InfoContext(ctx, "Feature", "key", kv.Key, "value", kv.Value)
+		editableStatus := "editable"
+		if !kv.Editable {
+			editableStatus = "read-only"
+		}
+		slog.InfoContext(ctx, "Feature", "key", kv.Key, "value", kv.Value, "editable", editableStatus)
 	}
 	return nil
 }
