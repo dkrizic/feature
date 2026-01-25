@@ -11,7 +11,9 @@ import (
 	"github.com/dkrizic/feature/cli/command/delete"
 	"github.com/dkrizic/feature/cli/command/get"
 	"github.com/dkrizic/feature/cli/command/getall"
+	"github.com/dkrizic/feature/cli/command/info"
 	"github.com/dkrizic/feature/cli/command/preset"
+	"github.com/dkrizic/feature/cli/command/restart"
 	"github.com/dkrizic/feature/cli/command/set"
 	"github.com/dkrizic/feature/cli/constant"
 	"github.com/dkrizic/feature/cli/meta"
@@ -138,6 +140,16 @@ func main() {
 						Name: "value",
 					},
 				},
+			},
+			&cli.Command{
+				Name:   "info",
+				Usage:  "Get service info including restart configuration",
+				Action: info.Info,
+			},
+			&cli.Command{
+				Name:   "restart",
+				Usage:  "Restart the configured service",
+				Action: restart.Restart,
 			},
 		},
 	}

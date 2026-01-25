@@ -25,6 +25,23 @@ message RestartResponse {
   string message = 2;
 }
 
+// ServiceInfo contains information about the configured restart service
+message ServiceInfo {
+  bool enabled = 1;
+  WorkloadType type = 2;
+  string name = 3;
+}
+
+// InfoRequest is an empty request for getting service info
+message InfoRequest {
+}
+
+// SimpleRestartRequest is an empty request that uses configured values
+message SimpleRestartRequest {
+}
+
 service Workload {
   rpc RestartWorkload(RestartRequest) returns (RestartResponse);
+  rpc Info(InfoRequest) returns (ServiceInfo);
+  rpc Restart(SimpleRestartRequest) returns (RestartResponse);
 }

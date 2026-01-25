@@ -152,6 +152,33 @@ func main() {
 						Value:   "feature_notifications",
 						Sources: cli.EnvVars("REDIS_NOTIFICATION_TOPIC"),
 					},
+					&cli.BoolFlag{
+						Name:     constant.RestartEnabled,
+						Usage:    "Enable workload restart feature",
+						Value:    false,
+						Category: "restart",
+						Sources:  cli.EnvVars("RESTART_ENABLED"),
+					},
+					&cli.StringFlag{
+						Name:     constant.RestartType,
+						Usage:    "Type of workload to restart: deployment, statefulset, daemonset",
+						Value:    "deployment",
+						Category: "restart",
+						Sources:  cli.EnvVars("RESTART_TYPE"),
+						Action: func(ctx context.Context, cmd *cli.Command, s string) error {
+							if s != "" && s != "deployment" && s != "statefulset" && s != "daemonset" {
+								return fmt.Errorf("invalid restart type: %s (must be deployment, statefulset, or daemonset)", s)
+							}
+							return nil
+						},
+					},
+					&cli.StringFlag{
+						Name:     constant.RestartName,
+						Usage:    "Name of the workload to restart",
+						Value:    "",
+						Category: "restart",
+						Sources:  cli.EnvVars("RESTART_NAME"),
+					},
 				},
 			},
 		},

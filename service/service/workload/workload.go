@@ -14,29 +14,35 @@ metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // WorkloadService implements the Workload gRPC service
 type WorkloadService struct {
-workloadv1.UnimplementedWorkloadServer
-clientset *kubernetes.Clientset
-namespace string
+	workloadv1.UnimplementedWorkloadServer
+	clientset      *kubernetes.Clientset
+	namespace      string
+	restartEnabled bool
+	restartType    workloadv1.WorkloadType
+	restartName    string
 }
 
 // NewWorkloadService creates a new workload service
-func NewWorkloadService(namespace string) (*WorkloadService, error) {
-// Create in-cluster config
-config, err := rest.InClusterConfig()
-if err != nil {
-return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
-}
+func NewWorkloadService(namespace string, restartEnabled bool, restartType workloadv1.WorkloadType, restartName string) (*WorkloadService, error) {
+	// Create in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create in-cluster config: %w", err)
+	}
 
-// Create Kubernetes clientset
-clientset, err := kubernetes.NewForConfig(config)
-if err != nil {
-return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
-}
+	// Create Kubernetes clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
 
-return &WorkloadService{
-clientset: clientset,
-namespace: namespace,
-}, nil
+	return &WorkloadService{
+		clientset:      clientset,
+		namespace:      namespace,
+		restartEnabled: restartEnabled,
+		restartType:    restartType,
+		restartName:    restartName,
+	}, nil
 }
 
 // RestartWorkload performs a rollout restart on the specified workload
@@ -159,13 +165,50 @@ return fmt.Errorf("failed to get daemonset: %w", err)
 if daemonSet.Spec.Template.Annotations == nil {
 daemonSet.Spec.Template.Annotations = make(map[string]string)
 }
-daemonSet.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	daemonSet.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 
-// Update the daemonset
-_, err = daemonSetsClient.Update(ctx, daemonSet, metav1.UpdateOptions{})
-if err != nil {
-return fmt.Errorf("failed to update daemonset: %w", err)
+	// Update the daemonset
+	_, err = daemonSetsClient.Update(ctx, daemonSet, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update daemonset: %w", err)
+	}
+
+	return nil
 }
 
-return nil
+// Info returns the configured restart service information
+func (s *WorkloadService) Info(ctx context.Context, req *workloadv1.InfoRequest) (*workloadv1.ServiceInfo, error) {
+	slog.InfoContext(ctx, "Received info request")
+
+	return &workloadv1.ServiceInfo{
+		Enabled: s.restartEnabled,
+		Type:    s.restartType,
+		Name:    s.restartName,
+	}, nil
+}
+
+// Restart performs a restart using the pre-configured workload settings
+func (s *WorkloadService) Restart(ctx context.Context, req *workloadv1.SimpleRestartRequest) (*workloadv1.RestartResponse, error) {
+	slog.InfoContext(ctx, "Received restart request for configured service")
+
+	if !s.restartEnabled {
+		return &workloadv1.RestartResponse{
+			Success: false,
+			Message: "Restart feature is not enabled",
+		}, nil
+	}
+
+	if s.restartName == "" {
+		return &workloadv1.RestartResponse{
+			Success: false,
+			Message: "Restart name is not configured",
+		}, nil
+	}
+
+	// Call RestartWorkload with the configured values
+	return s.RestartWorkload(ctx, &workloadv1.RestartRequest{
+		Type:      s.restartType,
+		Name:      s.restartName,
+		Namespace: "", // Use service namespace
+	})
 }

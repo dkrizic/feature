@@ -15,4 +15,7 @@ data:
   OPENTELEMETRY_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
   NOTIFICATION_ENABLED: {{ ternary "true" "false" .Values.service.notification.enabled | quote }}
   NOTIFICATION_TYPE: {{ .Values.service.notification.type | quote }}
+  RESTART_ENABLED: {{ ternary "true" "false" .Values.service.restart.enabled | quote }}
+  RESTART_TYPE: {{ .Values.service.restart.type | quote }}
+  RESTART_NAME: {{ .Values.service.restart.name | quote }}
 {{- end }}
