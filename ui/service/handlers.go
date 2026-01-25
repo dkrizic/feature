@@ -30,6 +30,7 @@ func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+prefix+"/features/create", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureCreate), "handleFeatureCreate").ServeHTTP)
 	mux.HandleFunc("POST "+prefix+"/features/update", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP)
 	mux.HandleFunc("POST "+prefix+"/features/delete", otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP)
+	mux.HandleFunc("POST "+prefix+"/restart", otelhttp.NewHandler(http.HandlerFunc(s.handleRestart), "handleRestart").ServeHTTP)
 	mux.HandleFunc("GET "+prefix+"/health", s.handleHealth)
 }
 
@@ -42,10 +43,16 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		UIVersion      string
 		BackendVersion string
 		Subpath        string
+		RestartEnabled bool
+		RestartName    string
+		RestartType    string
 	}{
 		UIVersion:      s.uiVersion,
 		BackendVersion: s.backendVersion,
 		Subpath:        s.subpath,
+		RestartEnabled: s.restartEnabled,
+		RestartName:    s.restartName,
+		RestartType:    s.restartType,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "index.gohtml", data); err != nil {
@@ -306,6 +313,45 @@ func (s *Server) handleWorkloadRestart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	slog.InfoContext(ctx, "Workload restarted successfully", "type", workloadType, "name", workloadName, "namespace", namespace)
+
+	// Return success message
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`<div class="success-message">%s</div>`, resp.Message)))
+}
+
+// handleRestart handles the simplified restart request using configured values
+func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleRestart")
+	defer span.End()
+
+	slog.InfoContext(ctx, "Handling restart request for configured service")
+
+	// Validate that restart is enabled
+	if !s.restartEnabled {
+		slog.WarnContext(ctx, "Restart feature is not enabled")
+		http.Error(w, "Restart feature is not enabled", http.StatusForbidden)
+		span.SetStatus(codes.Error, "Restart feature is not enabled")
+		return
+	}
+
+	// Call the gRPC backend
+	resp, err := s.workloadClient.Restart(ctx, &workloadv1.SimpleRestartRequest{})
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to restart service", "error", err)
+		http.Error(w, fmt.Sprintf("Failed to restart service: %v", err), http.StatusInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	if !resp.Success {
+		slog.WarnContext(ctx, "Service restart unsuccessful", "message", resp.Message)
+		http.Error(w, resp.Message, http.StatusBadRequest)
+		span.SetStatus(codes.Error, resp.Message)
+		return
+	}
+
+	slog.InfoContext(ctx, "Service restarted successfully")
 
 	// Return success message
 	w.Header().Set("Content-Type", "text/html")

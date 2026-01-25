@@ -149,12 +149,31 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	if namespace == "" {
 		namespace = "default"
 	}
-	workloadService, err := workload.NewWorkloadService(namespace)
+
+	// Get restart configuration from flags
+	restartEnabled := cmd.Bool(constant.RestartEnabled)
+	restartTypeStr := cmd.String(constant.RestartType)
+	restartName := cmd.String(constant.RestartName)
+
+	// Convert restart type string to protobuf enum
+	var restartType workloadv1.WorkloadType
+	switch restartTypeStr {
+	case "deployment":
+		restartType = workloadv1.WorkloadType_WORKLOAD_TYPE_DEPLOYMENT
+	case "statefulset":
+		restartType = workloadv1.WorkloadType_WORKLOAD_TYPE_STATEFULSET
+	case "daemonset":
+		restartType = workloadv1.WorkloadType_WORKLOAD_TYPE_DAEMONSET
+	default:
+		restartType = workloadv1.WorkloadType_WORKLOAD_TYPE_DEPLOYMENT
+	}
+
+	workloadService, err := workload.NewWorkloadService(namespace, restartEnabled, restartType, restartName)
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to create workload service (workload restart feature will be disabled)", "error", err)
 	} else {
 		workloadv1.RegisterWorkloadServer(grpcServer, workloadService)
-		slog.InfoContext(ctx, "Workload service enabled", "namespace", namespace)
+		slog.InfoContext(ctx, "Workload service enabled", "namespace", namespace, "restartEnabled", restartEnabled, "restartType", restartTypeStr, "restartName", restartName)
 	}
 
 	cancelChan := make(chan os.Signal, 1)

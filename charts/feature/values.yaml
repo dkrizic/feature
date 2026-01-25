@@ -53,6 +53,10 @@ service:
   notification:
     enabled: false
     type: ""
+  restart:
+    enabled: false
+    type: deployment
+    name: ""
 
 cli:
   # Deploy the feature CLI

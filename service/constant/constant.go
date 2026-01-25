@@ -23,4 +23,7 @@ const (
 	NotificationTypeRedisTopic = "redis_topic"
 	RedisEndpoint              = "redis-endpoint"
 	RedisNotificationTopic     = "redis-notification-topic"
+	RestartEnabled             = "restart-enabled"
+	RestartType                = "restart-type"
+	RestartName                = "restart-name"
 )

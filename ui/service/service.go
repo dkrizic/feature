@@ -28,15 +28,18 @@ import (
 
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
-	address        string
-	subpath        string
-	templates      *template.Template
-	featureClient  featurev1.FeatureClient
-	metaClient     metav1.MetaClient
-	workloadClient workloadv1.WorkloadClient
-	backendVersion string
-	uiVersion      string
-	httpServer     *http.Server
+	address         string
+	subpath         string
+	templates       *template.Template
+	featureClient   featurev1.FeatureClient
+	metaClient      metav1.MetaClient
+	workloadClient  workloadv1.WorkloadClient
+	backendVersion  string
+	uiVersion       string
+	httpServer      *http.Server
+	restartEnabled  bool
+	restartName     string
+	restartType     string
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -122,8 +125,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	workloadClient := workloadv1.NewWorkloadClient(conn)
 
 	// Fetch backend version
+	const grpcCallTimeout = 5 * time.Second
 	backendVersion := ""
-	metaCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	metaCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
 	defer cancel()
 	metaResp, err := metaClient.Meta(metaCtx, &metav1.MetaRequest{})
 	if err != nil {
@@ -131,6 +135,22 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	} else {
 		backendVersion = metaResp.Version
 		slog.InfoContext(ctx, "Backend version retrieved", "version", backendVersion)
+	}
+
+	// Fetch service restart info
+	restartEnabled := false
+	restartName := ""
+	restartType := ""
+	infoCtx, infoCancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer infoCancel()
+	infoResp, err := workloadClient.Info(infoCtx, &workloadv1.InfoRequest{})
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to fetch service info", "error", err)
+	} else {
+		restartEnabled = infoResp.Enabled
+		restartName = infoResp.Name
+		restartType = infoResp.Type.String()
+		slog.InfoContext(ctx, "Service info retrieved", "enabled", restartEnabled, "name", restartName, "type", restartType)
 	}
 
 	// Create server
@@ -143,6 +163,9 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		workloadClient: workloadClient,
 		backendVersion: backendVersion,
 		uiVersion:      meta.Version,
+		restartEnabled: restartEnabled,
+		restartName:    restartName,
+		restartType:    restartType,
 	}
 
 	// Setup HTTP routes
