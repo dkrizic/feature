@@ -17,5 +17,7 @@ const (
 	AuthenticationEnabled    = "authentication-enabled"
 	AuthenticationUsername   = "authentication-username"
 	AuthenticationPassword   = "authentication-password"
+	Username                 = "username"
+	Password                 = "password"
 	SessionCookieName        = "feature-ui-session"
 )

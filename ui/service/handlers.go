@@ -86,8 +86,11 @@ func (s *Server) handleFeaturesList(w http.ResponseWriter, r *http.Request) {
 
 	slog.InfoContext(ctx, "Fetching all features from backend")
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend
-	stream, err := s.featureClient.GetAll(ctx, &emptypb.Empty{})
+	stream, err := s.featureClient.GetAll(authCtx, &emptypb.Empty{})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to call GetAll", "error", err)
 		http.Error(w, "Failed to fetch features", http.StatusInternalServerError)
@@ -175,8 +178,11 @@ func (s *Server) handleFeatureCreate(w http.ResponseWriter, r *http.Request) {
 
 	value := r.FormValue("value")
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend to set (upsert)
-	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
+	_, err := s.featureClient.Set(authCtx, &featurev1.KeyValue{Key: key, Value: value})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to create feature", "key", key, "error", err)
 		http.Error(w, "Failed to create feature", http.StatusInternalServerError)
@@ -213,8 +219,11 @@ func (s *Server) handleFeatureUpdate(w http.ResponseWriter, r *http.Request) {
 
 	value := r.FormValue("value")
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend to set (update)
-	_, err := s.featureClient.Set(ctx, &featurev1.KeyValue{Key: key, Value: value})
+	_, err := s.featureClient.Set(authCtx, &featurev1.KeyValue{Key: key, Value: value})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to update feature", "key", key, "error", err)
 		http.Error(w, "Failed to update feature", http.StatusInternalServerError)
@@ -249,8 +258,11 @@ func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend to delete
-	_, err := s.featureClient.Delete(ctx, &featurev1.Key{Name: key})
+	_, err := s.featureClient.Delete(authCtx, &featurev1.Key{Name: key})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to delete feature", "key", key, "error", err)
 		http.Error(w, "Failed to delete feature", http.StatusInternalServerError)
@@ -346,8 +358,11 @@ func (s *Server) handleWorkloadRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend
-	resp, err := s.workloadClient.RestartWorkload(ctx, &workloadv1.RestartRequest{
+	resp, err := s.workloadClient.RestartWorkload(authCtx, &workloadv1.RestartRequest{
 		Type:      protoType,
 		Name:      workloadName,
 		Namespace: namespace,
@@ -389,8 +404,11 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get authenticated context with credentials from session
+	authCtx := s.getAuthenticatedContext(ctx, r)
+
 	// Call the gRPC backend
-	resp, err := s.workloadClient.Restart(ctx, &workloadv1.SimpleRestartRequest{})
+	resp, err := s.workloadClient.Restart(authCtx, &workloadv1.SimpleRestartRequest{})
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to restart service", "error", err)
 		http.Error(w, fmt.Sprintf("Failed to restart service: %v", err), http.StatusInternalServerError)

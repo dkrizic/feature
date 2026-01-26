@@ -12,4 +12,6 @@ const (
 	Endpoint              = "endpoint"
 	OpenTelemetryEnabled  = "opentelemetry-enabled"
 	OpenTelemetryEndpoint = "opentelemetry-endpoint"
+	Username              = "username"
+	Password              = "password"
 )

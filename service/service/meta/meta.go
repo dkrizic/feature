@@ -12,10 +12,13 @@ import (
 
 type MetaService struct {
 	metav1.UnimplementedMetaServer
+	authenticationRequired bool
 }
 
-func New() *MetaService {
-	return &MetaService{}
+func New(authenticationRequired bool) *MetaService {
+	return &MetaService{
+		authenticationRequired: authenticationRequired,
+	}
 }
 
 func (ms MetaService) Meta(ctx context.Context, req *metav1.MetaRequest) (*metav1.MetaResponse, error) {
@@ -23,7 +26,8 @@ func (ms MetaService) Meta(ctx context.Context, req *metav1.MetaRequest) (*metav
 	defer span.End()
 
 	return &metav1.MetaResponse{
-		ServiceName: meta.Service,
-		Version:     meta.Version,
+		ServiceName:            meta.Service,
+		Version:                meta.Version,
+		AuthenticationRequired: ms.authenticationRequired,
 	}, nil
 }

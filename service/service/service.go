@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/dkrizic/feature/service/constant"
+	"github.com/dkrizic/feature/service/service/auth"
 	"github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/service/persistence/factory"
 	"github.com/dkrizic/feature/service/telemetry"
@@ -111,21 +112,42 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	// create gRPC server
+	// Get authentication configuration
+	authEnabled := cmd.Bool(constant.AuthenticationEnabled)
+	authUsername := cmd.String(constant.AuthenticationUsername)
+	authPassword := cmd.String(constant.AuthenticationPassword)
+
+	if authEnabled {
+		if authPassword == "" {
+			slog.ErrorContext(ctx, "Authentication password cannot be empty when authentication is enabled")
+			return fmt.Errorf("authentication password cannot be empty when authentication is enabled")
+		}
+		slog.InfoContext(ctx, "Authentication enabled", "username", authUsername)
+	} else {
+		slog.InfoContext(ctx, "Authentication disabled")
+	}
+
+	// Create interceptor chain
+	otelInterceptor := otelgrpc.NewServerHandler(otelgrpc.WithFilter(
+		func(stats *stats.RPCTagInfo) bool {
+			// slog.Info("Called filter", "method", stats.FullMethodName)
+			if strings.Contains(stats.FullMethodName, "grpc.health") {
+				return false
+			}
+			return true
+		},
+	))
+
+	authInterceptor := auth.SelectiveInterceptor(authEnabled, authUsername, authPassword)
+
+	// Create gRPC server with chained interceptors
 	grpcServer := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler(otelgrpc.WithFilter(
-			func(stats *stats.RPCTagInfo) bool {
-				// slog.Info("Called filter", "method", stats.FullMethodName)
-				if strings.Contains(stats.FullMethodName, "grpc.health") {
-					return false
-				}
-				return true
-			},
-		))),
+		grpc.StatsHandler(otelInterceptor),
+		grpc.ChainUnaryInterceptor(authInterceptor),
 	)
 
 	// meta
-	metav1.RegisterMetaServer(grpcServer, meta.New())
+	metav1.RegisterMetaServer(grpcServer, meta.New(authEnabled))
 
 	// reflection
 	reflection.Register(grpcServer)

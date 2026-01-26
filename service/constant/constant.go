@@ -27,4 +27,7 @@ const (
 	RestartType                = "restart-type"
 	RestartName                = "restart-name"
 	Editable                   = "editable"
+	AuthenticationEnabled      = "authentication-enabled"
+	AuthenticationUsername     = "authentication-username"
+	AuthenticationPassword     = "authentication-password"
 )
