@@ -92,6 +92,28 @@ These flags are only available for the `service` subcommand:
 | `--subpath` | string | `""` | Subpath for the UI (e.g., `/feature`) | `SUBPATH` |
 | `--enable-opentelemetry` | bool | `false` | Enable OpenTelemetry tracing and metrics | `ENABLE_OPENTELEMETRY` |
 | `--otlp-endpoint` | string | `localhost:4317` | OTLP endpoint for OpenTelemetry (required if OpenTelemetry is enabled) | `OTLP_ENDPOINT` |
+| `--authentication-enabled` | bool | `false` | Enable authentication for the UI | `AUTHENTICATION_ENABLED` |
+| `--authentication-username` | string | `admin` | Username for authentication (validated by backend) | `AUTHENTICATION_USERNAME` |
+| `--authentication-password` | string | `""` | Password for authentication (validated by backend) | `AUTHENTICATION_PASSWORD` |
+
+### Authentication
+
+The UI service supports authentication that is validated by the backend service:
+
+- **Authentication is automatically enabled** when the backend service requires authentication (based on Meta response)
+- **Credentials can be optionally provided** via CLI flags or environment variables
+- **All authentication validation happens in the backend service** - the UI passes credentials to the backend via gRPC calls
+- **Failed login attempts are logged in the backend service** with username details
+- **Sessions are stored in-memory** and will be lost on server restart
+
+**Authentication Flow:**
+1. User enters username/password in the login form
+2. UI calls backend `GetAll()` with the provided credentials
+3. Backend validates credentials and logs the attempt
+4. If successful, UI creates a session and sets a cookie
+5. Subsequent requests use the session cookie to authenticate
+
+**Note:** The UI service does not store or validate credentials locally. All authentication is delegated to the backend service.
 
 ### Flag Validation Rules
 
