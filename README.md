@@ -14,31 +14,34 @@ Related components:
 
 ```mermaid
 graph TD
-    CLI[Command Line Interface]
-    APP1[Application 1]
-    APP2[Application 2]
-    K8S[Kubernetes Workloads]
+    subgraph W1[Workload 1]
+      APP1[Application 1]
+    end
+    subgraph W2[Workload 2]
+      CM[ConfigMap]
+      APP2[Application 2]
+    end
     subgraph FR[Frontend]
       BR[Browser]
       FS[Frontend Service]
+      CLI[Command Line Interface]
     end
     subgraph S[Service]
         API[gRPC API]
         P[Persistence]
-        WL[Workload Manager]
         INM[In-Memory Storage]
         CM[ConfigMap]
         API-->P
-        API-->WL
-        P-->INM
-        P-->|REST|CM
-        WL-->|Restart|K8S
+        P-->|Update|INM
+        P-->|Update|CM
     end
     BR-->|REST|FS
-    FS-->|gRPC|API
-    CLI-->|gRPC|API
-    APP1-->|gRPC|API
+    FS-->|Update via gRPC|API
+    CLI-->|Update via gRPC|API
+    APP1-->|Read via gRPC|API
     APP2-->|Mount|CM
+    API-->|Restart|APP2
+    
 ```
 ## Features
 
