@@ -12,4 +12,7 @@ data:
   SUBPATH: {{ .Values.ui.subpath | quote }}
   OPENTELEMETRY_ENABLED: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
   OPENTELEMETRY_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
+  {{- if .Values.service.authentication.enabled }}
+  AUTHENTICATION_ENABLED: "true"
+  {{- end }}
 {{- end }}
