@@ -1,1 +1,5 @@
 .idea/
+# Build artifacts
+cli/cli
+ui/ui
+service/service
