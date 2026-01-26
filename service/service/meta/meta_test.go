@@ -9,12 +9,12 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	ms := New()
+	ms := New(false)
 	assert.NotNil(t, ms)
 }
 
 func TestMetaService_Meta(t *testing.T) {
-	ms := New()
+	ms := New(false)
 	req := &metav1.MetaRequest{}
 
 	resp, err := ms.Meta(context.Background(), req)
@@ -23,4 +23,18 @@ func TestMetaService_Meta(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.NotEmpty(t, resp.ServiceName)
 	assert.NotEmpty(t, resp.Version)
+	assert.False(t, resp.AuthenticationRequired)
+}
+
+func TestMetaService_MetaWithAuth(t *testing.T) {
+	ms := New(true)
+	req := &metav1.MetaRequest{}
+
+	resp, err := ms.Meta(context.Background(), req)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.NotEmpty(t, resp.ServiceName)
+	assert.NotEmpty(t, resp.Version)
+	assert.True(t, resp.AuthenticationRequired)
 }
