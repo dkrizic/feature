@@ -19,4 +19,6 @@ data:
   RESTART_TYPE: {{ .Values.service.restart.type | quote }}
   RESTART_NAME: {{ .Values.service.restart.name | quote }}
   EDITABLE: {{ .Values.service.configMap.editable | quote }}
+  AUTHENTICATION_ENABLED: {{ ternary "true" "false" .Values.service.authentication.enabled | quote }}
+  AUTHENTICATION_USERNAME: {{ .Values.service.authentication.username | quote }}
 {{- end }}

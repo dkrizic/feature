@@ -37,6 +37,11 @@ service:
     editable: ""
   # Pre-set key-value pairs in the format key=value (comma-separated)
   preset: "COLOR=red,THEME=dark,BOOKING=true"
+  # Authentication settings
+  authentication:
+    enabled: false # Enable authentication for Feature and Workload services
+    username: admin
+    password: "" # If empty, a random password will be generated
   serviceAccount:
     create: true
   rbac:
@@ -88,11 +93,6 @@ ui:
   endpoint: ""
   # Subpath for the UI (e.g., /feature)
   subpath: ""
-  # Authentication settings
-  authentication:
-    enabled: false # Enable authentication
-    username: admin
-    password: "" # If empty, a random password will be generated
   livenessProbe:
     httpGet:
       path: /health

@@ -10,6 +10,7 @@ message MetaRequest {
 message MetaResponse {
   string serviceName = 1;
   string version = 2;
+  bool authenticationRequired = 3;
 }
 
 service Meta {

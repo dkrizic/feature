@@ -33,7 +33,24 @@ func (s *Server) isAuthenticated(r *http.Request) bool {
 
 	s.sessionsMutex.RLock()
 	defer s.sessionsMutex.RUnlock()
-	return s.authenticatedSessions[cookie.Value]
+	_, exists := s.authenticatedSessions[cookie.Value]
+	return exists
+}
+
+// getSessionCredentials retrieves the credentials for a session
+func (s *Server) getSessionCredentials(r *http.Request) *sessionCredentials {
+	cookie, err := r.Cookie(constant.SessionCookieName)
+	if err != nil {
+		return nil
+	}
+
+	s.sessionsMutex.RLock()
+	defer s.sessionsMutex.RUnlock()
+	creds, exists := s.authenticatedSessions[cookie.Value]
+	if !exists || creds == nil {
+		return nil
+	}
+	return creds
 }
 
 // requireAuth is middleware that checks authentication and redirects to login if needed
@@ -93,9 +110,12 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Store session
+			// Store session with credentials
 			s.sessionsMutex.Lock()
-			s.authenticatedSessions[sessionID] = true
+			s.authenticatedSessions[sessionID] = &sessionCredentials{
+				username: username,
+				password: password,
+			}
 			s.sessionsMutex.Unlock()
 
 			// Set cookie

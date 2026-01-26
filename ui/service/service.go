@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -21,11 +22,58 @@ import (
 	"github.com/urfave/cli/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 
 	metaversion "github.com/dkrizic/feature/ui/meta"
 	"github.com/dkrizic/feature/ui/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
+
+// basicAuthCreds implements credentials.PerRPCCredentials for Basic Auth
+type basicAuthCreds struct {
+	username string
+	password string
+}
+
+func (c *basicAuthCreds) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	auth := c.username + ":" + c.password
+	enc := base64.StdEncoding.EncodeToString([]byte(auth))
+	return map[string]string{
+		"authorization": "Basic " + enc,
+	}, nil
+}
+
+func (c *basicAuthCreds) RequireTransportSecurity() bool {
+	return false
+}
+
+// getAuthenticatedContext creates a context with authentication metadata from the session
+func (s *Server) getAuthenticatedContext(ctx context.Context, r *http.Request) context.Context {
+	creds := s.getSessionCredentials(r)
+	if creds != nil {
+		// Create basicAuthCreds and get metadata
+		auth := &basicAuthCreds{
+			username: creds.username,
+			password: creds.password,
+		}
+		md, err := auth.GetRequestMetadata(ctx)
+		if err != nil {
+			// Log error but continue without auth metadata
+			slog.WarnContext(ctx, "Failed to generate auth metadata", "error", err)
+			return ctx
+		}
+		
+		// Add metadata to context
+		return metadata.AppendToOutgoingContext(ctx, "authorization", md["authorization"])
+	}
+	return ctx
+}
+
+// sessionCredentials holds the credentials for a session
+type sessionCredentials struct {
+	username string
+	password string
+}
 
 // Server holds the HTTP server and gRPC clients.
 type Server struct {
@@ -48,7 +96,7 @@ type Server struct {
 	// Note: In-memory session storage. Sessions are not shared across instances
 	// and will be lost on server restart. For production multi-instance deployments,
 	// consider implementing a persistent session store (e.g., Redis).
-	authenticatedSessions map[string]bool
+	authenticatedSessions map[string]*sessionCredentials
 }
 
 var otelShutdown func(ctx context.Context) error = nil
@@ -120,7 +168,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to parse templates")
 	}
 
-	// Dial the gRPC backend
+	// Dial the gRPC backend (without credentials - will be added per-request)
 	conn, err := grpc.NewClient(endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
@@ -136,9 +184,10 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	metaClient := metav1.NewMetaClient(conn)
 	workloadClient := workloadv1.NewWorkloadClient(conn)
 
-	// Fetch backend version
+	// Fetch backend version and authentication status
 	const grpcCallTimeout = 5 * time.Second
 	backendVersion := ""
+	backendAuthRequired := false
 	metaCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
 	defer cancel()
 	metaResp, err := metaClient.Meta(metaCtx, &metav1.MetaRequest{})
@@ -146,7 +195,15 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		slog.WarnContext(ctx, "Failed to fetch backend version", "error", err)
 	} else {
 		backendVersion = metaResp.Version
-		slog.InfoContext(ctx, "Backend version retrieved", "version", backendVersion)
+		backendAuthRequired = metaResp.AuthenticationRequired
+		slog.InfoContext(ctx, "Backend info retrieved", "version", backendVersion, "authRequired", backendAuthRequired)
+	}
+
+	// Determine if UI authentication should be enabled
+	// Enable UI auth if explicitly set OR if backend requires authentication
+	effectiveAuthEnabled := authEnabled || backendAuthRequired
+	if backendAuthRequired && !authEnabled {
+		slog.InfoContext(ctx, "Enabling UI authentication because backend requires it")
 	}
 
 	// Fetch service restart info
@@ -178,10 +235,10 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		restartEnabled:        restartEnabled,
 		restartName:           restartName,
 		restartType:           restartType,
-		authEnabled:           authEnabled,
+		authEnabled:           effectiveAuthEnabled,
 		authUsername:          authUsername,
 		authPassword:          authPassword,
-		authenticatedSessions: make(map[string]bool),
+		authenticatedSessions: make(map[string]*sessionCredentials),
 	}
 
 	// Setup HTTP routes
