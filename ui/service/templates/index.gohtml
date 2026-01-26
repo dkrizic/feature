@@ -179,10 +179,7 @@
                 <p>
                     <small>
                         UI {{.UIVersion}}
-                        {{if .BackendVersion}} · Backend <span id="backend-version" 
-                                                                hx-get="{{.Subpath}}/version" 
-                                                                hx-trigger="every 5m" 
-                                                                hx-swap="innerHTML">{{.BackendVersion}}</span>{{end}}
+                        {{if .BackendVersion}} · Backend <span id="backend-version" hx-get="{{.Subpath}}/version" hx-trigger="every 5m" hx-swap="innerHTML">{{.BackendVersion}}</span>{{end}}
                     </small>
                 </p>
             </div>

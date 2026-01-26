@@ -270,7 +270,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-// handleVersion fetches the current backend version and returns it as HTML.
+// handleVersion fetches the current backend version and returns it as plain text.
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleVersion")
 	defer span.End()
