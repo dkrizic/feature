@@ -1,13 +1,16 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"sort"
+	"time"
 
 	featurev1 "github.com/dkrizic/feature/ui/repository/feature/v1"
+	metav1 "github.com/dkrizic/feature/ui/repository/meta/v1"
 	workloadv1 "github.com/dkrizic/feature/ui/repository/workload/v1"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -39,6 +42,7 @@ func (s *Server) registerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+prefix+"/features/update", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureUpdate), "handleFeatureUpdate").ServeHTTP))
 	mux.HandleFunc("POST "+prefix+"/features/delete", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleFeatureDelete), "handleFeatureDelete").ServeHTTP))
 	mux.HandleFunc("POST "+prefix+"/restart", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleRestart), "handleRestart").ServeHTTP))
+	mux.HandleFunc("GET "+prefix+"/version", s.requireAuth(otelhttp.NewHandler(http.HandlerFunc(s.handleVersion), "handleVersion").ServeHTTP))
 	
 	// Health check (no auth required)
 	mux.HandleFunc("GET "+prefix+"/health", s.handleHealth)
@@ -264,6 +268,32 @@ func (s *Server) handleFeatureDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// handleVersion fetches the current backend version and returns it as plain text.
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleVersion")
+	defer span.End()
+
+	slog.InfoContext(ctx, "Fetching backend version")
+
+	// Fetch backend version with a timeout
+	const grpcCallTimeout = 5 * time.Second
+	metaCtx, cancel := context.WithTimeout(ctx, grpcCallTimeout)
+	defer cancel()
+	
+	metaResp, err := s.metaClient.Meta(metaCtx, &metav1.MetaRequest{})
+	if err != nil {
+		slog.WarnContext(ctx, "Failed to fetch backend version", "error", err)
+		// Return empty string on error to avoid breaking the UI
+		w.Write([]byte(""))
+		span.SetStatus(codes.Error, err.Error())
+		return
+	}
+
+	// Return just the version string as plain text for HTMX to swap
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(metaResp.Version))
 }
 
 // handleWorkloadRestart handles workload restart requests

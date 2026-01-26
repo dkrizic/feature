@@ -377,6 +377,67 @@ func TestHandleFeatureDelete(t *testing.T) {
 	}
 }
 
+func TestHandleVersion(t *testing.T) {
+	tests := []struct {
+		name           string
+		mockVersion    string
+		mockError      error
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "successful version fetch",
+			mockVersion:    "v1.2.3",
+			mockError:      nil,
+			expectedStatus: http.StatusOK,
+			expectedBody:   "v1.2.3",
+		},
+		{
+			name:           "error fetching version",
+			mockVersion:    "",
+			mockError:      io.EOF,
+			expectedStatus: http.StatusOK,
+			expectedBody:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockMetaClient := new(MockMetaClient)
+
+			if tt.mockError == nil {
+				mockMetaClient.On("Meta", mock.Anything, mock.Anything).Return(&metav1.MetaResponse{Version: tt.mockVersion}, nil)
+			} else {
+				mockMetaClient.On("Meta", mock.Anything, mock.Anything).Return(nil, tt.mockError)
+			}
+
+			server := &Server{
+				metaClient: mockMetaClient,
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/version", nil)
+			w := httptest.NewRecorder()
+
+			server.handleVersion(w, req)
+
+			resp := w.Result()
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedBody, string(body))
+
+			if tt.expectedBody != "" {
+				assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
+			}
+
+			mockMetaClient.AssertExpectations(t)
+		})
+	}
+}
+
 func TestRegisterHandlers(t *testing.T) {
 	// Create minimal templates for testing
 	tmpl := template.Must(template.New("index.gohtml").Parse(`Test`))
