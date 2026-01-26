@@ -1,4 +1,51 @@
 {{- if and .Values.service.rbac.create .Values.serviceAccount.create -}}
+{{- if .Values.service.applications }}
+{{- /* Multi-application mode - create ClusterRole and RoleBindings for each namespace */ -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "feature.fullname" . }}
+  labels:
+    {{- include "feature.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "patch", "update"]
+---
+{{- /* Create a RoleBinding in each unique namespace */ -}}
+{{- $serviceAccountName := include "feature.serviceAccountName" . -}}
+{{- $releaseNamespace := .Release.Namespace -}}
+{{- $clusterRoleName := include "feature.fullname" . -}}
+{{- $uniqueNamespaces := dict -}}
+{{- range .Values.service.applications }}
+{{- $namespace := .namespace | default "default" -}}
+{{- $_ := set $uniqueNamespaces $namespace true -}}
+{{- end }}
+{{- range $namespace, $_ := $uniqueNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $clusterRoleName }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "feature.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: service
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $clusterRoleName }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ $releaseNamespace }}
+---
+{{- end }}
+{{- else }}
+{{- /* Legacy single-application mode - use Role in current namespace */ -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -29,4 +76,5 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "feature.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}
