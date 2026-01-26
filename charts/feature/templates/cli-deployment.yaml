@@ -44,7 +44,7 @@ spec:
                 name: {{ include "feature.cli.fullname" . }}
             {{- if .Values.service.authentication.enabled }}
             - secretRef:
-                name: {{ printf "%s-auth" (include "feature.fullname" .) }}
+                name: {{ printf "%s-cli-auth" (include "feature.fullname" .) }}
             {{- end }}
           {{- with .Values.cli.resources }}
           resources:
