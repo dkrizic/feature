@@ -12,6 +12,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// protectedServicePaths defines the gRPC service paths that require authentication
+var protectedServicePaths = []string{
+	"/feature.Feature/",
+	"/workload.Workload/",
+}
+
+// requiresAuthentication checks if a method requires authentication
+func requiresAuthentication(fullMethod string) bool {
+	for _, path := range protectedServicePaths {
+		if strings.Contains(fullMethod, path) {
+			return true
+		}
+	}
+	return false
+}
+
 // SelectiveInterceptor creates a gRPC unary server interceptor that only applies
 // authentication to specific services (Feature and Workload)
 func SelectiveInterceptor(enabled bool, username, password string) grpc.UnaryServerInterceptor {
@@ -26,13 +42,9 @@ func SelectiveInterceptor(enabled bool, username, password string) grpc.UnarySer
 			return handler(ctx, req)
 		}
 
-		// Only authenticate Feature and Workload services
+		// Only authenticate protected services (Feature and Workload)
 		// Allow Health and Meta services to pass through without authentication
-		method := info.FullMethod
-		requiresAuth := strings.Contains(method, "/feature.Feature/") || 
-			strings.Contains(method, "/workload.Workload/")
-		
-		if !requiresAuth {
+		if !requiresAuthentication(info.FullMethod) {
 			return handler(ctx, req)
 		}
 

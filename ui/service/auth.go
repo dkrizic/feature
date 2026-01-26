@@ -46,7 +46,11 @@ func (s *Server) getSessionCredentials(r *http.Request) *sessionCredentials {
 
 	s.sessionsMutex.RLock()
 	defer s.sessionsMutex.RUnlock()
-	return s.authenticatedSessions[cookie.Value]
+	creds, exists := s.authenticatedSessions[cookie.Value]
+	if !exists || creds == nil {
+		return nil
+	}
+	return creds
 }
 
 // requireAuth is middleware that checks authentication and redirects to login if needed

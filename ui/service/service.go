@@ -56,7 +56,12 @@ func (s *Server) getAuthenticatedContext(ctx context.Context, r *http.Request) c
 			username: creds.username,
 			password: creds.password,
 		}
-		md, _ := auth.GetRequestMetadata(ctx)
+		md, err := auth.GetRequestMetadata(ctx)
+		if err != nil {
+			// Log error but continue without auth metadata
+			slog.WarnContext(ctx, "Failed to generate auth metadata", "error", err)
+			return ctx
+		}
 		
 		// Add metadata to context
 		return metadata.AppendToOutgoingContext(ctx, "authorization", md["authorization"])
