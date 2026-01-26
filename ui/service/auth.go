@@ -3,12 +3,15 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/dkrizic/feature/ui/constant"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // generateSessionID generates a random session ID
@@ -100,61 +103,92 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		username := r.FormValue("username")
 		password := r.FormValue("password")
 
-		if username == s.authUsername && password == s.authPassword {
-			// Generate session ID
-			sessionID, err := generateSessionID()
-			if err != nil {
-				slog.ErrorContext(ctx, "Failed to generate session ID", "error", err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				span.SetStatus(codes.Error, err.Error())
-				return
-			}
-
-			// Store session with credentials
-			s.sessionsMutex.Lock()
-			s.authenticatedSessions[sessionID] = &sessionCredentials{
-				username: username,
-				password: password,
-			}
-			s.sessionsMutex.Unlock()
-
-			// Set cookie
-			// Note: Secure flag is intentionally not set to support both HTTP and HTTPS deployments.
-			// The Secure flag would prevent cookies from being sent over HTTP, breaking non-HTTPS setups.
-			// SECURITY RECOMMENDATION: Always deploy behind HTTPS in production. The reverse proxy/ingress
-			// should handle TLS termination and can add Secure flag via response header manipulation if needed.
-			http.SetCookie(w, &http.Cookie{
-				Name:     constant.SessionCookieName,
-				Value:    sessionID,
-				Path:     s.subpath + "/",
-				HttpOnly: true,
-				SameSite: http.SameSiteStrictMode,
-				MaxAge:   86400, // 24 hours
-			})
-
-			slog.InfoContext(ctx, "User logged in successfully", "username", username)
-
-			// Redirect to home
-			http.Redirect(w, r, s.subpath+"/", http.StatusSeeOther)
-			return
+		// Validate credentials by calling backend GetAll
+		// Use request context for proper tracing and cancellation
+		auth := &basicAuthCreds{
+			username: username,
+			password: password,
 		}
-
-		// Invalid credentials
-		slog.WarnContext(ctx, "Invalid login attempt", "username", username)
-		data := struct {
-			Subpath string
-			Error   string
-		}{
-			Subpath: s.subpath,
-			Error:   "Invalid username or password",
-		}
-
-		if err := s.templates.ExecuteTemplate(w, "login.gohtml", data); err != nil {
-			slog.ErrorContext(ctx, "Failed to render login template", "error", err)
+		md, err := auth.GetRequestMetadata(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to generate auth metadata", "error", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			span.SetStatus(codes.Error, err.Error())
 			return
 		}
+		authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", md["authorization"])
+
+		// Try to call GetAll with provided credentials
+		// Note: This validates credentials by attempting a backend call.
+		// The backend will log authentication attempts.
+		stream, err := s.featureClient.GetAll(authCtx, &emptypb.Empty{})
+		if err != nil {
+			// Backend validation failed - backend will log this
+			slog.WarnContext(ctx, "Backend authentication failed", "username", username, "error", err)
+			data := struct {
+				Subpath string
+				Error   string
+			}{
+				Subpath: s.subpath,
+				Error:   "Invalid username or password",
+			}
+			if err := s.templates.ExecuteTemplate(w, "login.gohtml", data); err != nil {
+				slog.ErrorContext(ctx, "Failed to render login template", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				span.SetStatus(codes.Error, err.Error())
+			}
+			return
+		}
+
+		// Drain the stream (we don't need the data, just validation)
+		// Note: This is necessary because GetAll returns a stream. In production,
+		// consider using a dedicated authentication endpoint for efficiency.
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				slog.WarnContext(ctx, "Error reading stream during auth", "error", err)
+				break
+			}
+		}
+
+		// Authentication successful - create session
+		sessionID, err := generateSessionID()
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to generate session ID", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			span.SetStatus(codes.Error, err.Error())
+			return
+		}
+
+		// Store session with credentials
+		s.sessionsMutex.Lock()
+		s.authenticatedSessions[sessionID] = &sessionCredentials{
+			username: username,
+			password: password,
+		}
+		s.sessionsMutex.Unlock()
+
+		// Set cookie
+		// Note: Secure flag is intentionally not set to support both HTTP and HTTPS deployments.
+		// The Secure flag would prevent cookies from being sent over HTTP, breaking non-HTTPS setups.
+		// SECURITY RECOMMENDATION: Always deploy behind HTTPS in production. The reverse proxy/ingress
+		// should handle TLS termination and can add Secure flag via response header manipulation if needed.
+		http.SetCookie(w, &http.Cookie{
+			Name:     constant.SessionCookieName,
+			Value:    sessionID,
+			Path:     s.subpath + "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   86400, // 24 hours
+		})
+
+		slog.InfoContext(ctx, "User logged in successfully", "username", username)
+
+		// Redirect to home
+		http.Redirect(w, r, s.subpath+"/", http.StatusSeeOther)
 		return
 	}
 
