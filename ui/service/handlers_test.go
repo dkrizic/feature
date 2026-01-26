@@ -390,13 +390,13 @@ func TestHandleVersion(t *testing.T) {
 			mockVersion:    "v1.2.3",
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   `{"backendVersion":"v1.2.3"}`,
+			expectedBody:   "v1.2.3",
 		},
 		{
 			name:           "error fetching version",
 			mockVersion:    "",
 			mockError:      io.EOF,
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusOK,
 			expectedBody:   "",
 		},
 	}
@@ -425,11 +425,12 @@ func TestHandleVersion(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
 
-			if tt.expectedStatus == http.StatusOK {
-				body, err := io.ReadAll(resp.Body)
-				assert.NoError(t, err)
-				assert.JSONEq(t, tt.expectedBody, string(body))
-				assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+			body, err := io.ReadAll(resp.Body)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedBody, string(body))
+
+			if tt.expectedBody != "" {
+				assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
 			}
 
 			mockMetaClient.AssertExpectations(t)

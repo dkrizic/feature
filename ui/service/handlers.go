@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -271,7 +270,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-// handleVersion fetches the current backend version and returns it as JSON.
+// handleVersion fetches the current backend version and returns it as HTML.
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	ctx, span := otel.Tracer("ui/service").Start(r.Context(), "handleVersion")
 	defer span.End()
@@ -286,23 +285,15 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	metaResp, err := s.metaClient.Meta(metaCtx, &metav1.MetaRequest{})
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to fetch backend version", "error", err)
-		http.Error(w, "Failed to fetch backend version", http.StatusInternalServerError)
+		// Return empty string on error to avoid breaking the UI
+		w.Write([]byte(""))
 		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
-	// Return the version as JSON
-	response := map[string]string{
-		"backendVersion": metaResp.Version,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.ErrorContext(ctx, "Failed to encode version response", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		span.SetStatus(codes.Error, err.Error())
-		return
-	}
+	// Return just the version string as plain text for HTMX to swap
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(metaResp.Version))
 }
 
 // handleWorkloadRestart handles workload restart requests

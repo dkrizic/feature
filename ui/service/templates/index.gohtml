@@ -179,7 +179,10 @@
                 <p>
                     <small>
                         UI {{.UIVersion}}
-                        {{if .BackendVersion}} · Backend <span id="backend-version">{{.BackendVersion}}</span>{{end}}
+                        {{if .BackendVersion}} · Backend <span id="backend-version" 
+                                                                hx-get="{{.Subpath}}/version" 
+                                                                hx-trigger="every 5m" 
+                                                                hx-swap="innerHTML">{{.BackendVersion}}</span>{{end}}
                     </small>
                 </p>
             </div>
@@ -268,36 +271,6 @@
                     applyTheme('system');
                 }
             });
-        })();
-
-        // Backend version refresh (every 5 minutes)
-        (function() {
-            const versionElement = document.getElementById('backend-version');
-            if (!versionElement) return; // Exit if no backend version element
-
-            const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
-            const SUBPATH = '{{.Subpath}}';
-
-            function refreshBackendVersion() {
-                fetch(SUBPATH + '/version')
-                    .then(function(response) {
-                        if (!response.ok) {
-                            throw new Error('Failed to fetch version');
-                        }
-                        return response.json();
-                    })
-                    .then(function(data) {
-                        if (data.backendVersion && data.backendVersion !== versionElement.textContent) {
-                            versionElement.textContent = data.backendVersion;
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('Error fetching backend version:', error);
-                    });
-            }
-
-            // Refresh version every 5 minutes
-            setInterval(refreshBackendVersion, REFRESH_INTERVAL);
         })();
 
         // HTMX error handler with toast
