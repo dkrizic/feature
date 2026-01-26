@@ -21,11 +21,13 @@ func PreSet(ctx context.Context, cmd *cli.Command) error {
 
 	key := cmd.StringArg("key")
 	value := cmd.StringArg("value")
+	app := command.GetApplicationName(cmd)
 
-	slog.Info("PreSetting feature", "key", key, "value", value)
+	slog.Info("PreSetting feature", "key", key, "value", value, "application", app)
 	_, err = fc.PreSet(ctx, &feature.KeyValue{
-		Key:   key,
-		Value: value,
+		Key:         key,
+		Value:       value,
+		Application: app,
 	})
 	return err
 }

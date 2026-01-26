@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 
 message Key {
   string name = 1;
+  string application = 2;
 }
 
 message Value {
@@ -18,6 +19,16 @@ message KeyValue {
   string key = 1;
   string value = 2;
   bool editable = 3;
+  string application = 4;
+}
+
+message ApplicationsRequest {
+}
+
+message Application {
+  string name = 1;
+  string namespace = 2;
+  string storage_type = 3;
 }
 
 service Feature {
@@ -26,4 +37,5 @@ service Feature {
   rpc Set (KeyValue) returns (google.protobuf.Empty);
   rpc Get(Key) returns (Value);
   rpc Delete(Key) returns (google.protobuf.Empty);
+  rpc GetApplications (ApplicationsRequest) returns (stream Application);
 }

@@ -20,10 +20,12 @@ func Get(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	key := cmd.StringArg("key")
+	app := command.GetApplicationName(cmd)
 
-	slog.InfoContext(ctx, "Getting feature", "key", key)
+	slog.InfoContext(ctx, "Getting feature", "key", key, "application", app)
 	result, err := fc.Get(ctx, &feature.Key{
-		Name: key,
+		Name:        key,
+		Application: app,
 	})
 	if err == nil {
 		cmd.Writer.Write([]byte(result.Name + "\n"))

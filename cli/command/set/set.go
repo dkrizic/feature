@@ -24,11 +24,13 @@ func Set(ctx context.Context, cmd *cli.Command) error {
 
 	key := cmd.StringArg("key")
 	value := cmd.StringArg("value")
+	app := command.GetApplicationName(cmd)
 
-	slog.Info("Setting feature", "key", key, "value", value)
+	slog.Info("Setting feature", "key", key, "value", value, "application", app)
 	_, err = fc.Set(ctx, &feature.KeyValue{
-		Key:   key,
-		Value: value,
+		Key:         key,
+		Value:       value,
+		Application: app,
 	})
 	
 	// Check if the error is a PermissionDenied error

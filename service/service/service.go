@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/dkrizic/feature/service/constant"
+	"github.com/dkrizic/feature/service/service/application"
 	"github.com/dkrizic/feature/service/service/auth"
 	"github.com/dkrizic/feature/service/service/persistence"
 	"github.com/dkrizic/feature/service/service/persistence/factory"
@@ -83,27 +84,73 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int("port")
 	slog.InfoContext(ctx, "Configuration", "port", port)
 
-	// configure persistence based on storage type
-	pers, err := factory.NewPersistence(ctx, cmd)
-
-	// check if there is a preset
-	preset := cmd.StringSlice(constant.PreSet)
-	for _, kv := range preset {
-		parts := strings.SplitN(kv, "=", 2)
-		if len(parts) != 2 {
-			slog.WarnContext(ctx, "Invalid preset format, expected key=value", "preset", kv)
-			continue
-		}
-		key := parts[0]
-		value := parts[1]
-		slog.InfoContext(ctx, "Pre-setting key-value", "key", key, "value", value)
-		err := pers.PreSet(ctx, persistence.KeyValue{
-			Key:   key,
-			Value: value,
-		})
+	// Check if we're using multi-application mode
+	applicationsStr := os.Getenv("APPLICATIONS")
+	var featureService *feature.FeatureService
+	
+	if applicationsStr != "" {
+		// Multi-application mode
+		slog.InfoContext(ctx, "Using multi-application mode", "applications", applicationsStr)
+		appManager := application.NewManager()
+		err := appManager.LoadFromConfig(ctx, cmd)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to pre-set key-value", "key", key, "value", value, "error", err)
-			return fmt.Errorf("failed to pre-set key-value: %w", err)
+			slog.ErrorContext(ctx, "Failed to load application configuration", "error", err)
+			return fmt.Errorf("failed to load application configuration: %w", err)
+		}
+		
+		// Pre-set values for all applications
+		for _, app := range appManager.ListApplications() {
+			err := appManager.PreSetApplication(ctx, app.Name)
+			if err != nil {
+				return fmt.Errorf("failed to preset application %s: %w", app.Name, err)
+			}
+		}
+		
+		featureService, err = feature.NewFeatureServiceWithAppManager(appManager)
+		if err != nil {
+			slog.Error("Failed to create feature service", "error", err)
+			return fmt.Errorf("failed to create feature service: %w", err)
+		}
+	} else {
+		// Legacy single-application mode
+		slog.InfoContext(ctx, "Using legacy single-application mode")
+		
+		// configure persistence based on storage type
+		pers, err := factory.NewPersistence(ctx, cmd)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to create persistence", "error", err)
+			return fmt.Errorf("failed to create persistence: %w", err)
+		}
+
+		// check if there is a preset
+		preset := cmd.StringSlice(constant.PreSet)
+		for _, kv := range preset {
+			parts := strings.SplitN(kv, "=", 2)
+			if len(parts) != 2 {
+				slog.WarnContext(ctx, "Invalid preset format, expected key=value", "preset", kv)
+				continue
+			}
+			key := parts[0]
+			value := parts[1]
+			slog.InfoContext(ctx, "Pre-setting key-value", "key", key, "value", value)
+			err := pers.PreSet(ctx, persistence.KeyValue{
+				Key:   key,
+				Value: value,
+			})
+			if err != nil {
+				slog.ErrorContext(ctx, "Failed to pre-set key-value", "key", key, "value", value, "error", err)
+				return fmt.Errorf("failed to pre-set key-value: %w", err)
+			}
+		}
+		
+		// Get editable fields configuration
+		editableFields := cmd.String(constant.Editable)
+		
+		// feature
+		featureService, err = feature.NewFeatureService(pers, editableFields)
+		if err != nil {
+			slog.Error("Failed to create feature service", "error", err)
+			return fmt.Errorf("failed to create feature service: %w", err)
 		}
 	}
 
@@ -157,15 +204,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
-	// Get editable fields configuration
-	editableFields := cmd.String(constant.Editable)
-
-	// feature
-	featureService, err := feature.NewFeatureService(pers, editableFields)
-	if err != nil {
-		slog.Error("Failed to create feature service", "error", err)
-		return fmt.Errorf("failed to create feature service: %w", err)
-	}
+	// Register feature service
 	featurev1.RegisterFeatureServer(grpcServer, featureService)
 
 	// workload

@@ -20,11 +20,12 @@ func Delete(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	key := cmd.StringArg("key")
-	value := cmd.StringArg("value")
+	app := command.GetApplicationName(cmd)
 
-	slog.Info("Deleting feature", "key", key, "value", value)
+	slog.Info("Deleting feature", "key", key, "application", app)
 	_, err = fc.Delete(ctx, &feature.Key{
-		Name: key,
+		Name:        key,
+		Application: app,
 	})
 	return err
 }
