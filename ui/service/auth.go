@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
@@ -105,15 +104,23 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 
 		// Validate credentials by calling backend GetAll
-		authCtx := context.Background()
+		// Use request context for proper tracing and cancellation
 		auth := &basicAuthCreds{
 			username: username,
 			password: password,
 		}
-		md, _ := auth.GetRequestMetadata(authCtx)
-		authCtx = metadata.AppendToOutgoingContext(authCtx, "authorization", md["authorization"])
+		md, err := auth.GetRequestMetadata(ctx)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to generate auth metadata", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			span.SetStatus(codes.Error, err.Error())
+			return
+		}
+		authCtx := metadata.AppendToOutgoingContext(ctx, "authorization", md["authorization"])
 
 		// Try to call GetAll with provided credentials
+		// Note: This validates credentials by attempting a backend call.
+		// The backend will log authentication attempts.
 		stream, err := s.featureClient.GetAll(authCtx, &emptypb.Empty{})
 		if err != nil {
 			// Backend validation failed - backend will log this
@@ -134,6 +141,8 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Drain the stream (we don't need the data, just validation)
+		// Note: This is necessary because GetAll returns a stream. In production,
+		// consider using a dedicated authentication endpoint for efficiency.
 		for {
 			_, err := stream.Recv()
 			if err == io.EOF {
