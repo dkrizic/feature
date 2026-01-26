@@ -90,8 +90,6 @@ type Server struct {
 	restartName          string
 	restartType          string
 	authEnabled          bool
-	authUsername         string
-	authPassword         string
 	sessionsMutex        sync.RWMutex
 	// Note: In-memory session storage. Sessions are not shared across instances
 	// and will be lost on server restart. For production multi-instance deployments,
@@ -148,9 +146,6 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	port := cmd.Int(constant.Port)
 	endpoint := cmd.String(constant.Endpoint)
 	subpath := cmd.String(constant.Subpath)
-	authEnabled := cmd.Bool(constant.AuthenticationEnabled)
-	authUsername := cmd.String(constant.AuthenticationUsername)
-	authPassword := cmd.String(constant.AuthenticationPassword)
 
 	// Normalize subpath: ensure it starts with / and doesn't end with /
 	if subpath != "" {
@@ -160,7 +155,7 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		subpath = strings.TrimSuffix(subpath, "/")
 	}
 
-	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath, "authEnabled", authEnabled)
+	slog.InfoContext(ctx, "Configuration", "port", port, "endpoint", endpoint, "subpath", subpath)
 
 	// Parse templates
 	templates := ParseTemplates(ctx)
@@ -199,11 +194,12 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		slog.InfoContext(ctx, "Backend info retrieved", "version", backendVersion, "authRequired", backendAuthRequired)
 	}
 
-	// Determine if UI authentication should be enabled
-	// Enable UI auth if explicitly set OR if backend requires authentication
-	effectiveAuthEnabled := authEnabled || backendAuthRequired
-	if backendAuthRequired && !authEnabled {
-		slog.InfoContext(ctx, "Enabling UI authentication because backend requires it")
+	// Determine if UI authentication should be enabled based on backend requirements
+	effectiveAuthEnabled := backendAuthRequired
+	if backendAuthRequired {
+		slog.InfoContext(ctx, "UI authentication enabled (backend requires authentication)")
+	} else {
+		slog.InfoContext(ctx, "UI authentication disabled (backend does not require authentication)")
 	}
 
 	// Fetch service restart info
@@ -236,8 +232,6 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 		restartName:           restartName,
 		restartType:           restartType,
 		authEnabled:           effectiveAuthEnabled,
-		authUsername:          authUsername,
-		authPassword:          authPassword,
 		authenticatedSessions: make(map[string]*sessionCredentials),
 	}
 
