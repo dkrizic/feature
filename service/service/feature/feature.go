@@ -82,10 +82,15 @@ func (fs *FeatureService) isEditable(key string) bool {
 	return fs.editableFields[key]
 }
 
+// isLegacyMode returns true if the service is running in legacy single-application mode
+func (fs *FeatureService) isLegacyMode() bool {
+	return fs.appManager == nil
+}
+
 // getAppPersistence returns the persistence and editable fields for a specific application
 func (fs *FeatureService) getAppPersistence(ctx context.Context, appName string) (persistence.Persistence, map[string]bool, error) {
 	// If using legacy mode (single application)
-	if fs.appManager == nil {
+	if fs.isLegacyMode() {
 		return fs.persistence, fs.editableFields, nil
 	}
 	
@@ -112,7 +117,7 @@ func (fs *FeatureService) GetAll(empty *emptypb.Empty, stream grpc.ServerStreami
 	// use the default persistence. Otherwise, we would need application context from metadata
 	// For now, we'll get all from the default application
 	var appName string
-	if fs.appManager != nil {
+	if !fs.isLegacyMode() {
 		appName = fs.appManager.GetDefaultApplication()
 	}
 	
@@ -288,7 +293,7 @@ func (fs *FeatureService) GetApplications(req *featurev1.ApplicationsRequest, st
 	ctx, span := otel.Tracer("feature/service").Start(stream.Context(), "GetApplications")
 	defer span.End()
 
-	if fs.appManager == nil {
+	if fs.isLegacyMode() {
 		// Legacy mode - return default application
 		err := stream.Send(&featurev1.Application{
 			Name:        "default",

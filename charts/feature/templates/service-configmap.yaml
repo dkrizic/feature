@@ -37,8 +37,8 @@ data:
   EDITABLE: {{ .Values.service.configMap.editable | quote }}
   {{- end }}
   PORT: {{ .Values.service.port | quote }}
-  OPENTELEMETRY_ENABLED: {{ ternary "true" "false" .Values.service.opentelemetry.enabled | quote }}
-  OPENTELEMETRY_ENDPOINT: {{ .Values.service.opentelemetry.endpoint | quote }}
+  OPENTELEMETRY_ENABLED: {{ ternary "true" "false" (default .Values.cli.opentelemetry.enabled .Values.service.opentelemetry.enabled) | quote }}
+  OPENTELEMETRY_ENDPOINT: {{ default .Values.cli.opentelemetry.endpoint .Values.service.opentelemetry.endpoint | quote }}
   NOTIFICATION_ENABLED: {{ ternary "true" "false" .Values.service.notification.enabled | quote }}
   NOTIFICATION_TYPE: {{ .Values.service.notification.type | quote }}
   AUTHENTICATION_ENABLED: {{ ternary "true" "false" .Values.service.authentication.enabled | quote }}
