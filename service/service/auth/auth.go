@@ -72,7 +72,7 @@ func validateCredentials(ctx context.Context, fullMethod, username, password str
 	}
 
 	// Credentials are valid
-	slog.DebugContext(ctx, "Authentication successful", "method", fullMethod, "username", pair[0])
+	slog.DebugContext(ctx, "Authentication successful", "method", fullMethod)
 	return nil
 }
 
