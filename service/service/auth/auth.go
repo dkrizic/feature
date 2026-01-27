@@ -67,12 +67,12 @@ func validateCredentials(ctx context.Context, fullMethod, username, password str
 
 	// Validate credentials
 	if pair[0] != username || pair[1] != password {
-		slog.WarnContext(ctx, "Invalid credentials", "method", fullMethod)
+		slog.WarnContext(ctx, "Invalid credentials", "method", fullMethod, "username", pair[0])
 		return status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
 	// Credentials are valid
-	slog.DebugContext(ctx, "Authentication successful", "method", fullMethod)
+	slog.DebugContext(ctx, "Authentication successful", "method", fullMethod, "username", pair[0])
 	return nil
 }
 
