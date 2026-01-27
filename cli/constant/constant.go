@@ -14,4 +14,6 @@ const (
 	OpenTelemetryEndpoint = "opentelemetry-endpoint"
 	Username              = "username"
 	Password              = "password"
+	Application           = "application"
+	DefaultApplication    = "default-application"
 )

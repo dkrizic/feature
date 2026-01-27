@@ -7,18 +7,40 @@ metadata:
     {{- include "feature.labels" . | nindent 4 }}
     app.kubernetes.io/component: service
 data:
+  {{- if .Values.service.applications }}
+  {{- /* Multi-application mode */ -}}
+  APPLICATIONS: {{ join "," (pluck "name" .Values.service.applications) | quote }}
+  DEFAULT_APPLICATION: {{ .Values.service.defaultApplication | default (index .Values.service.applications 0).name | quote }}
+  {{- range .Values.service.applications }}
+  {{- $appPrefix := upper (replace "-" "_" .name) }}
+  {{ $appPrefix }}_NAMESPACE: {{ .namespace | default "default" | quote }}
+  {{ $appPrefix }}_STORAGE_TYPE: {{ .storageType | default "inmemory" | quote }}
+  {{- if .configMap }}
+  {{ $appPrefix }}_CONFIGMAP_NAME: {{ .configMap.name | quote }}
+  {{ $appPrefix }}_PRESET: {{ .configMap.preset | default "" | quote }}
+  {{ $appPrefix }}_EDITABLE: {{ .configMap.editable | default "" | quote }}
+  {{- end }}
+  {{- if .workload }}
+  {{ $appPrefix }}_RESTART_ENABLED: {{ ternary "true" "false" .workload.enabled | quote }}
+  {{ $appPrefix }}_RESTART_TYPE: {{ .workload.type | default "deployment" | quote }}
+  {{ $appPrefix }}_RESTART_NAME: {{ .workload.name | default "" | quote }}
+  {{- end }}
+  {{- end }}
+  {{- else }}
+  {{- /* Legacy single-application mode */ -}}
   STORAGE_TYPE: {{ .Values.service.storageType | quote }}
   CONFIGMAP_NAME: {{ .Values.service.configMap.name | quote }}
-  PORT: {{ .Values.service.port | quote }}
   PRESET: {{ .Values.service.preset | quote }}
-  OPENTELEMETRY_ENABLED: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
-  OPENTELEMETRY_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
-  NOTIFICATION_ENABLED: {{ ternary "true" "false" .Values.service.notification.enabled | quote }}
-  NOTIFICATION_TYPE: {{ .Values.service.notification.type | quote }}
   RESTART_ENABLED: {{ ternary "true" "false" .Values.service.restart.enabled | quote }}
   RESTART_TYPE: {{ .Values.service.restart.type | quote }}
   RESTART_NAME: {{ .Values.service.restart.name | quote }}
   EDITABLE: {{ .Values.service.configMap.editable | quote }}
+  {{- end }}
+  PORT: {{ .Values.service.port | quote }}
+  OPENTELEMETRY_ENABLED: {{ ternary "true" "false" (default .Values.cli.opentelemetry.enabled .Values.service.opentelemetry.enabled) | quote }}
+  OPENTELEMETRY_ENDPOINT: {{ default .Values.cli.opentelemetry.endpoint .Values.service.opentelemetry.endpoint | quote }}
+  NOTIFICATION_ENABLED: {{ ternary "true" "false" .Values.service.notification.enabled | quote }}
+  NOTIFICATION_TYPE: {{ .Values.service.notification.type | quote }}
   AUTHENTICATION_ENABLED: {{ ternary "true" "false" .Values.service.authentication.enabled | quote }}
   AUTHENTICATION_USERNAME: {{ .Values.service.authentication.username | quote }}
 {{- end }}

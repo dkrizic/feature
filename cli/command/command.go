@@ -31,6 +31,15 @@ func (c *basicAuthCreds) RequireTransportSecurity() bool {
 	return false
 }
 
+// GetApplicationName returns the application name from the command
+func GetApplicationName(cmd *cli.Command) string {
+	app := cmd.String(constant.Application)
+	if app == "" {
+		app = cmd.String(constant.DefaultApplication)
+	}
+	return app
+}
+
 func FeatureClient(cmd *cli.Command) (feature.FeatureClient, error) {
 	endpoint := cmd.String(constant.Endpoint)
 	username := cmd.String(constant.Username)

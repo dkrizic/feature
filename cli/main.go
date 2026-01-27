@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/dkrizic/feature/cli/command/applications"
 	"github.com/dkrizic/feature/cli/command/delete"
 	"github.com/dkrizic/feature/cli/command/get"
 	"github.com/dkrizic/feature/cli/command/getall"
@@ -92,6 +93,21 @@ func main() {
 				Usage:    "Password for backend service authentication",
 				Sources:  cli.EnvVars("PASSWORD"),
 			},
+			&cli.StringFlag{
+				Name:     constant.Application,
+				Aliases:  []string{"a"},
+				Value:    "",
+				Category: "application",
+				Usage:    "Application name (defaults to default application if not specified)",
+				Sources:  cli.EnvVars("APPLICATION"),
+			},
+			&cli.StringFlag{
+				Name:     constant.DefaultApplication,
+				Value:    "",
+				Category: "application",
+				Usage:    "Default application name to use when -a is not specified",
+				Sources:  cli.EnvVars("DEFAULT_APPLICATION"),
+			},
 		},
 		Before: before,
 		After:  after,
@@ -103,6 +119,11 @@ func main() {
 					slog.InfoContext(ctx, "Feature Service", "name", meta.Service, "version", meta.Version)
 					return nil
 				},
+			},
+			&cli.Command{
+				Name:   "applications",
+				Usage:  "List all configured applications",
+				Action: applications.Applications,
 			},
 			&cli.Command{
 				Name:   "getall",

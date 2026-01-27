@@ -29,6 +29,7 @@ service:
     # The port that the Kubernetes Service listens on
     port: 80
   # The storage type, either "inmemory" or "configmap"
+  # Legacy single-application mode - will be used if applications is not set
   storageType: inmemory
   # ConfigMap data, only used if storageType is "configmap"
   configMap:
@@ -37,6 +38,32 @@ service:
     editable: ""
   # Pre-set key-value pairs in the format key=value (comma-separated)
   preset: "COLOR=red,THEME=dark,BOOKING=true"
+  # Multi-application configuration (if set, overrides single-application settings above)
+  # applications:
+  #   - name: yasm-frontend
+  #     namespace: frontend
+  #     storageType: configmap
+  #     configMap:
+  #       name: yasm-frontend
+  #       preset: BANNER=Hello
+  #       editable: BANNER
+  #     workload:
+  #       enabled: true
+  #       type: deployment
+  #       name: yasm-frontend
+  #   - name: yasm-backend
+  #     namespace: backend
+  #     storageType: configmap
+  #     configMap:
+  #       name: yasm-backend
+  #       preset: AUTH_ENABLED=true,BACKGROUND=blue
+  #       editable: BACKGROUND
+  #     workload:
+  #       enabled: true
+  #       type: deployment
+  #       name: yasm-backend
+  # Default application (used when --application is not specified in CLI)
+  defaultApplication: ""
   # Authentication settings
   authentication:
     enabled: false # Enable authentication for Feature and Workload services

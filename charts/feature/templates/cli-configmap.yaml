@@ -10,4 +10,9 @@ data:
   ENDPOINT: {{ default (printf "%s:%v" (include "feature.fullname" .) .Values.service.service.port) .Values.cli.endpoint | quote }}
   OPENTELEMETRY_ENABLED: {{ ternary "true" "false" .Values.cli.opentelemetry.enabled | quote }}
   OPENTELEMETRY_ENDPOINT: {{ .Values.cli.opentelemetry.endpoint | quote }}
+  {{- if .Values.service.defaultApplication }}
+  DEFAULT_APPLICATION: {{ .Values.service.defaultApplication | quote }}
+  {{- else if .Values.service.applications }}
+  DEFAULT_APPLICATION: {{ (index .Values.service.applications 0).name | quote }}
+  {{- end }}
 {{- end }}

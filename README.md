@@ -51,12 +51,100 @@ graph TD
 * REST API for frontend consumption
 * Persistence layer with in-memory and Kubernetes ConfigMap backends
 * Command Line Interface (CLI) for managing feature flags
+* **Multi-application support** for managing feature flags across multiple applications
 * **Field-level access control** with editable field restrictions
 * Workload restart functionality for Deployments, StatefulSets, and DaemonSets
 * Designed for Kubernetes environments
 * OpenTelemetry instrumentation for observability
 * Configurable via environment variables and ConfigMaps
 * Lightweight and easy to deploy
+
+## Multi-Application Support
+
+The feature service supports managing feature flags for multiple applications from a single service instance. Each application can have its own:
+
+- Namespace
+- Storage type (in-memory or ConfigMap)
+- ConfigMap configuration
+- Workload restart settings
+- Editable field restrictions
+
+### Configuration
+
+**Helm Chart:**
+```yaml
+service:
+  applications:
+    - name: yasm-frontend
+      namespace: frontend
+      storageType: configmap
+      configMap:
+        name: yasm-frontend
+        preset: BANNER=Hello
+        editable: BANNER
+      workload:
+        enabled: true
+        type: deployment
+        name: yasm-frontend
+    - name: yasm-backend
+      namespace: backend
+      storageType: configmap
+      configMap:
+        name: yasm-backend
+        preset: AUTH_ENABLED=true,BACKGROUND=blue
+        editable: BACKGROUND
+      workload:
+        enabled: true
+        type: deployment
+        name: yasm-backend
+  defaultApplication: yasm-frontend
+```
+
+### CLI Usage
+
+```bash
+# List all configured applications
+feature-cli applications
+
+# Get all features for a specific application
+feature-cli -a yasm-frontend getall
+
+# Set a feature value for an application
+feature-cli -a yasm-backend set BACKGROUND green
+
+# Get a feature value (uses default application if -a not specified)
+feature-cli get BANNER
+
+# Delete a feature
+feature-cli -a yasm-frontend delete DEBUG_MODE
+```
+
+The `-a` or `--application` flag can be used with all feature management commands. If not specified, the default application (first in the list or set via `defaultApplication`) is used.
+
+### Environment Variables
+
+For multi-application mode, set:
+
+```bash
+APPLICATIONS=app1,app2,app3
+DEFAULT_APPLICATION=app1
+
+# Configuration for app1
+APP1_NAMESPACE=namespace1
+APP1_STORAGE_TYPE=configmap
+APP1_CONFIGMAP_NAME=app1-config
+APP1_PRESET=KEY1=value1,KEY2=value2
+APP1_EDITABLE=KEY1
+APP1_RESTART_ENABLED=true
+APP1_RESTART_TYPE=deployment
+APP1_RESTART_NAME=app1-deployment
+```
+
+Replace hyphens with underscores in application names for environment variable prefixes (e.g., `yasm-frontend` becomes `YASM_FRONTEND_`).
+
+### Legacy Single-Application Mode
+
+The service still supports the legacy single-application mode for backward compatibility. If `applications` is not set in the Helm chart or `APPLICATIONS` environment variable is not set, the service operates in single-application mode using the legacy configuration.
 
 ## Field-Level Access Control
 
