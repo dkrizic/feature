@@ -139,11 +139,13 @@ func Service(ctx context.Context, cmd *cli.Command) error {
 	))
 
 	authInterceptor := auth.SelectiveInterceptor(authEnabled, authUsername, authPassword)
+	authStreamInterceptor := auth.SelectiveStreamInterceptor(authEnabled, authUsername, authPassword)
 
 	// Create gRPC server with chained interceptors
 	grpcServer := grpc.NewServer(
 		grpc.StatsHandler(otelInterceptor),
 		grpc.ChainUnaryInterceptor(authInterceptor),
+		grpc.ChainStreamInterceptor(authStreamInterceptor),
 	)
 
 	// meta
