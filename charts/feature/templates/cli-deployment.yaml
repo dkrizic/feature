@@ -23,6 +23,8 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      # the UI and the CLI only talk to the feature service, never to the Kubernetes API
+      automountServiceAccountToken: false
       {{- with .Values.global.image.pullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
